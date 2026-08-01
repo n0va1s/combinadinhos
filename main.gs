@@ -20,6 +20,16 @@ function doPost(e) {
     return ContentService.createTextOutput("OK");
   } catch (error) {
     console.error(error);
+    
+    // Tenta enviar a mensagem de erro para o Telegram para facilitar o debug
+    try {
+      const update = JSON.parse(e.postData.contents);
+      const chatId = update.message ? update.message.chat.id : (update.callback_query ? update.callback_query.message.chat.id : null);
+      if (chatId) {
+        sendMessage(chatId, "❌ Erro na Planilha: " + error.message + "\n\nVerifique se o nome das abas estão exatos (sem acento): Config, Usuarios, Missoes, Lojinha, Historico.");
+      }
+    } catch(e2) {}
+    
     return ContentService.createTextOutput("Error");
   }
 }
@@ -31,6 +41,15 @@ function setWebhook() {
   const url = `https://api.telegram.org/bot${TOKEN}/setWebhook?url=${WEBHOOK_URL}`;
   const response = UrlFetchApp.fetch(url);
   Logger.log(response.getContentText());
+}
+
+function resetWebhook() {
+  // Limpa a fila de mensagens travadas no Telegram
+  UrlFetchApp.fetch(`https://api.telegram.org/bot${TOKEN}/deleteWebhook?drop_pending_updates=true`);
+  // Refaz o webhook
+  const url = `https://api.telegram.org/bot${TOKEN}/setWebhook?url=${WEBHOOK_URL}`;
+  const response = UrlFetchApp.fetch(url);
+  Logger.log("Fila limpa e Webhook resetado: " + response.getContentText());
 }
 
 /**
@@ -63,14 +82,14 @@ function handleMessage(message) {
       addMission(description, coins, day);
       sendMessage(chatId, `✅ Missão adicionada com sucesso!\n🎯 ${description} (${coins} Combinadinhos)`);
     } else {
-      sendMessage(chatId, "Apenas os pais podem adicionar missões!");
+      sendMessage(chatId, `Apenas pais podem adicionar missões! (Seu ID do Telegram é: ${userId})`);
     }
   } else if (text.startsWith('/missoes')) {
     // Apenas pais podem disparar manualmente
     if (isParent(userId)) {
       sendDailyTasksToGroup(chatId);
     } else {
-      sendMessage(chatId, "Apenas os pais podem enviar as tarefas manuais!");
+      sendMessage(chatId, `Apenas os pais podem enviar as tarefas manuais! (Seu ID: ${userId})`);
     }
   } else if (text.startsWith('/saldo')) {
     const balance = getUserBalance(userId);
@@ -94,7 +113,7 @@ function handleMessage(message) {
       addReward(description, cost);
       sendMessage(chatId, `✅ Recompensa adicionada com sucesso!\n🎁 ${description} (Custa: ${cost})`);
     } else {
-      sendMessage(chatId, "Apenas os pais podem adicionar recompensas!");
+      sendMessage(chatId, `Apenas os pais podem adicionar recompensas! (Seu ID: ${userId})`);
     }
   } else if (text.startsWith('/lojinha')) {
     showStore(chatId);
@@ -103,7 +122,7 @@ function handleMessage(message) {
       setSetting('GROUP_CHAT_ID', chatId);
       sendMessage(chatId, "Grupo configurado com sucesso! As tarefas diárias serão enviadas aqui no horário configurado.");
     } else {
-      sendMessage(chatId, "Apenas pais podem configurar o grupo.");
+      sendMessage(chatId, `Apenas pais podem configurar o grupo. (Seu ID do Telegram: ${userId})`);
     }
   } else if (text.startsWith('/lembrete')) {
     if (isParent(userId)) {

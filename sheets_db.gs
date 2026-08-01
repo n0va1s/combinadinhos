@@ -1,7 +1,12 @@
+const SPREADSHEET_ID = '1UIx4NG9P89ONUl0RdL0-rhuxM-_hCbhZexA2P54bY8U';
+
 /**
  * Retorna a planilha ativa.
  */
 function getDb() {
+  if (SPREADSHEET_ID) {
+    return SpreadsheetApp.openById(SPREADSHEET_ID);
+  }
   return SpreadsheetApp.getActiveSpreadsheet();
 }
 
