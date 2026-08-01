@@ -55,9 +55,13 @@ Um aplicativo de quadro de tarefas gamificado no Telegram, usando o Google Plani
 
 ### 6. Configurar o Grupo da Família e Horário
 1. Crie um grupo no Telegram e adicione o seu Bot.
-2. Mande uma mensagem no grupo: `/config_grupo`
+2. Mande uma mensagem no grupo: `/entrar`
 3. O Bot vai salvar o ID do grupo na planilha.
-4. Por padrão, o bot envia as missões às 07:00 da manhã. Você pode alterar esse horário a qualquer momento enviando o comando `/config_horario 08` (para enviar às 08:00, por exemplo).
-5. Para testar o envio de tarefas manualmente a qualquer momento, envie `/tarefas`.
+4. Por padrão, o bot envia as missões às 07:00 da manhã. Você pode alterar esse horário a qualquer momento enviando o comando `/lembrete 08` (para enviar às 08:00, por exemplo).
+5. Para testar o envio de tarefas manualmente a qualquer momento, envie `/missoes`.
+
+### 7. Comandos Úteis (Apenas Pais)
+- `/missoes-add Descrição, Valor, [Dia]`: Cadastra uma nova missão direto pelo Telegram. (Ex: `/missoes-add Arrumar a cama, 10, Segunda`)
+- `/lojinha-add Descrição, Custo`: Cadastra um novo benefício na lojinha. (Ex: `/lojinha-add 1 hora de videogame, 50`)
 
 Pronto! Seu sistema de tarefas está rodando! 🚀

@@ -42,8 +42,30 @@ function handleMessage(message) {
   const userId = message.from.id;
 
   if (text.startsWith('/start')) {
-    sendMessage(chatId, "Olá! Sou o bot dos Combinadinhos. Para iniciar o dia, os pais podem usar o comando /tarefas.\nPara salvar este grupo, use o comando /config_grupo");
-  } else if (text.startsWith('/tarefas')) {
+    sendMessage(chatId, "Olá! Sou o bot dos Combinadinhos. Para iniciar o dia, os pais podem usar o comando /missoes.\nPara salvar este grupo, use o comando /entrar");
+  } else if (text.startsWith('/missoes-add')) {
+    if (isParent(userId)) {
+      const content = text.replace('/missoes-add', '').trim();
+      if (!content) {
+        sendMessage(chatId, "Uso: /missoes-add Descrição, Valor, [Dia]\nEx: /missoes-add Arrumar a cama, 10, Segunda\nEx: /missoes-add Estudar, 15");
+        return;
+      }
+      const parts = content.split(',').map(s => s.trim());
+      const description = parts[0];
+      const coins = parseInt(parts[1], 10);
+      const day = parts[2] || "";
+      
+      if (!description || isNaN(coins)) {
+        sendMessage(chatId, "Erro de formato. Certifique-se de enviar a descrição e o valor separados por vírgula.");
+        return;
+      }
+      
+      addMission(description, coins, day);
+      sendMessage(chatId, `✅ Missão adicionada com sucesso!\n🎯 ${description} (${coins} Combinadinhos)`);
+    } else {
+      sendMessage(chatId, "Apenas os pais podem adicionar missões!");
+    }
+  } else if (text.startsWith('/missoes')) {
     // Apenas pais podem disparar manualmente
     if (isParent(userId)) {
       sendDailyTasksToGroup(chatId);
@@ -53,20 +75,41 @@ function handleMessage(message) {
   } else if (text.startsWith('/saldo')) {
     const balance = getUserBalance(userId);
     sendMessage(chatId, `Seu saldo atual é de ${balance} Combinadinhos!`);
-  } else if (text.startsWith('/loja')) {
+  } else if (text.startsWith('/lojinha-add')) {
+    if (isParent(userId)) {
+      const content = text.replace('/lojinha-add', '').trim();
+      if (!content) {
+        sendMessage(chatId, "Uso: /lojinha-add Descrição, Custo\nEx: /lojinha-add 1 hora de videogame, 50");
+        return;
+      }
+      const parts = content.split(',').map(s => s.trim());
+      const description = parts[0];
+      const cost = parseInt(parts[1], 10);
+      
+      if (!description || isNaN(cost)) {
+        sendMessage(chatId, "Erro de formato. Certifique-se de enviar a descrição e o custo separados por vírgula.");
+        return;
+      }
+      
+      addReward(description, cost);
+      sendMessage(chatId, `✅ Recompensa adicionada com sucesso!\n🎁 ${description} (Custa: ${cost})`);
+    } else {
+      sendMessage(chatId, "Apenas os pais podem adicionar recompensas!");
+    }
+  } else if (text.startsWith('/lojinha')) {
     showStore(chatId);
-  } else if (text.startsWith('/config_grupo')) {
+  } else if (text.startsWith('/entrar')) {
     if (isParent(userId)) {
       setSetting('GROUP_CHAT_ID', chatId);
       sendMessage(chatId, "Grupo configurado com sucesso! As tarefas diárias serão enviadas aqui no horário configurado.");
     } else {
       sendMessage(chatId, "Apenas pais podem configurar o grupo.");
     }
-  } else if (text.startsWith('/config_horario')) {
+  } else if (text.startsWith('/lembrete')) {
     if (isParent(userId)) {
       const parts = text.split(' ');
       if (parts.length < 2) {
-        sendMessage(chatId, "Uso incorreto. Exemplo de uso: /config_horario 08");
+        sendMessage(chatId, "Uso incorreto. Exemplo de uso: /lembrete 08");
         return;
       }
       
@@ -78,7 +121,7 @@ function handleMessage(message) {
       
       const hour = parseInt(hourStr, 10);
       if (isNaN(hour) || hour < 0 || hour > 23) {
-        sendMessage(chatId, "Hora inválida. Use um número de 0 a 23 (ex: /config_horario 08).");
+        sendMessage(chatId, "Hora inválida. Use um número de 0 a 23 (ex: /lembrete 08).");
         return;
       }
       

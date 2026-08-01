@@ -152,3 +152,45 @@ function logAction(date, action, user, detail) {
     sheet.appendRow([date, action, user, detail]);
   }
 }
+
+/**
+ * Adiciona uma nova missão na aba "Missoes"
+ */
+function addMission(description, coins, day) {
+  const sheet = getDb().getSheetByName('Missoes');
+  const data = sheet.getDataRange().getValues();
+  
+  // Encontrar o maior ID atual
+  let maxId = 0;
+  for (let i = 1; i < data.length; i++) {
+    const id = parseInt(data[i][0], 10);
+    if (!isNaN(id) && id > maxId) {
+      maxId = id;
+    }
+  }
+  
+  const newId = maxId + 1;
+  sheet.appendRow([newId, description, coins, day]);
+  return newId;
+}
+
+/**
+ * Adiciona uma nova recompensa na aba "Lojinha"
+ */
+function addReward(description, cost) {
+  const sheet = getDb().getSheetByName('Lojinha');
+  const data = sheet.getDataRange().getValues();
+  
+  // Encontrar o maior ID atual
+  let maxId = 0;
+  for (let i = 1; i < data.length; i++) {
+    const id = parseInt(data[i][0], 10);
+    if (!isNaN(id) && id > maxId) {
+      maxId = id;
+    }
+  }
+  
+  const newId = maxId + 1;
+  sheet.appendRow([newId, description, cost]);
+  return newId;
+}
