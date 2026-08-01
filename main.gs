@@ -8,6 +8,15 @@ function doPost(e) {
   try {
     const update = JSON.parse(e.postData.contents);
     
+    // Filtro anti-repetição (Evita que o Telegram reenvie mensagens por causa do erro 302)
+    const cache = CacheService.getScriptCache();
+    if (update.update_id && cache.get(update.update_id.toString())) {
+      return ContentService.createTextOutput("OK"); // Já processamos, ignora
+    }
+    if (update.update_id) {
+      cache.put(update.update_id.toString(), "1", 3600); // Salva no cache por 1 hora
+    }
+    
     // Se for um clique num botão (Callback Query)
     if (update.callback_query) {
       handleCallback(update.callback_query);
