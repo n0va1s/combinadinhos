@@ -1,77 +1,58 @@
-# Bot Combinadinhos 🤖
+<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
 
-Um aplicativo de quadro de tarefas gamificado no Telegram, usando o Google Planilhas como banco de dados e o Google Apps Script como servidor (gratuito!).
+<p align="center">
+<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
+<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
+<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
+<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
+</p>
 
-## Passo a Passo para Instalação
+## About Laravel
 
-### 1. Criar o Bot no Telegram
-1. Abra o Telegram e procure por `@BotFather`.
-2. Envie o comando `/newbot`.
-3. Escolha um nome (ex: `Combinadinhos da Família`) e um username (terminando em `bot`, ex: `familiasilvabot`).
-4. O BotFather te dará um **TOKEN** (uma string longa). Guarde esse token.
+Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
 
-### 2. Criar a Planilha no Google
-1. Crie uma nova planilha no Google Sheets.
-2. Crie as seguintes abas (o nome tem que ser exato):
-   - **Config**: 
-     - A1: `Chave`, B1: `Valor`
-     - A2: `GROUP_CHAT_ID`, B2: (deixe em branco por enquanto)
-   - **Usuarios**:
-     - A1: `Nome`, B1: `Papel`, C1: `ID_Telegram`, D1: `Saldo`
-     - Cadastre os membros. `Papel` deve ser `Pai` ou `Filho`. Para saber o ID_Telegram, você pode usar um bot como o `@userinfobot`. Deixe `Saldo` como `0`.
-   - **Missoes**:
-     - A1: `ID`, B1: `Descricao`, C1: `Moedas`, D1: `Dia`
-     - O `Dia` pode ser: Segunda, Terça, Quarta, Quinta, Sexta, Sábado, Domingo. Se ficar em branco (ou "Todos"), a missão será enviada todos os dias.
-     - Dica: Se você colocar um valor negativo em `Moedas` (ex: `-10`), isso virará uma **Punição/Regra**! O Bot exibirá um botão "Aplicar Punição" exclusivo para os pais.
-     - Ex 1: `1`, `Arrumar a cama`, `10`, `Segunda`
-     - Ex 2: `2`, `Brigou com o irmão`, `-15`, ``
-   - **Lojinha**:
-     - A1: `ID`, B1: `Descricao`, C1: `Custo`
-     - Ex: `1`, `1 hora de videogame`, `50`
-   - **Historico**:
-     - A1: `Data`, B1: `Acao`, C1: `Usuario`, D1: `Detalhe`
+- [Simple, fast routing engine](https://laravel.com/docs/routing).
+- [Powerful dependency injection container](https://laravel.com/docs/container).
+- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
+- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
+- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
+- [Robust background job processing](https://laravel.com/docs/queues).
+- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
 
-### 3. Colocar o Código no Apps Script
-1. Na sua planilha, clique em **Extensões > Apps Script**.
-2. Crie os arquivos `.gs` no editor copiando o conteúdo dos arquivos deste repositório:
-   - `main.gs`
-   - `telegram_api.gs`
-   - `sheets_db.gs`
-   - `game_logic.gs`
-3. No arquivo `main.gs`, altere a variável `TOKEN` colocando o token que você pegou no BotFather.
+Laravel is accessible, powerful, and provides tools required for large, robust applications.
 
-### 4. Publicar e Conectar (Webhook)
-1. No Apps Script, clique no botão azul **Implantar** (Deploy) no canto superior direito > **Nova Implantação**.
-2. Selecione o tipo **App da Web**.
-3. Em "Executar como", escolha **Eu** (seu email).
-4. Em "Quem tem acesso", escolha **Qualquer pessoa** (Isso é necessário para o Telegram conseguir mandar mensagens para o script).
-5. Clique em **Implantar**. Copie a **URL do App da Web** gerada.
-6. Volte no arquivo `main.gs`, cole essa URL na variável `WEBHOOK_URL`. Salve o arquivo (Ctrl+S).
-7. Ainda no Apps Script, selecione a função `setWebhook` no menu superior (onde fica o botão "Executar") e clique em **Executar**. Dê as permissões necessárias. O Google vai avisar que o script não é seguro, vá em "Avançado > Acessar (inseguro)". Se aparecer "Webhook was set" no log, deu certo!
+## Learning Laravel
 
-### 5. Configurar o Gatilho Diário (07:00)
-1. No Apps Script, selecione a função `createTimeDrivenTriggers` no menu superior e clique em **Executar**.
-2. Isso vai programar o envio automático das tarefas todos os dias pela manhã.
+Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
 
-### 6. Configurar o Grupo da Família e Horário
-1. Crie um grupo no Telegram e adicione o seu Bot.
-2. Mande uma mensagem no grupo: `/entrar`
-3. O Bot vai salvar o ID do grupo na planilha.
-4. Por padrão, o bot envia as missões às 07:00 da manhã. Você pode alterar esse horário a qualquer momento enviando o comando `/lembrete 08` (para enviar às 08:00, por exemplo).
-5. Para testar o envio de tarefas manualmente a qualquer momento, envie `/missoes`.
+In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
 
-### 7. Lista Completa de Comandos
+You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
 
-**Gerais (Para todos da família):**
-- `/start`: Mensagem inicial e de boas-vindas do bot.
-- `/missoes`: Mostra a lista de tarefas diárias naquele exato momento, para todos lembrarem o que tem que fazer hoje.
-- `/saldo`: Mostra o seu saldo atual de "Combinadinhos".
-- `/lojinha`: Abre a loja com todos os benefícios que podem ser trocados pelos pontos.
+## Agentic Development
 
-**Administrativos (Apenas para os Pais):**
-- `/entrar`: O bot vincula o grupo atual para começar a enviar as missões diárias ali.
-- `/lembrete <hora>`: Configura a hora que o bot mandará as tarefas automaticamente (Ex: `/lembrete 08`).
-- `/missoes-add Descrição, Valor, [Dia]`: Cadastra uma nova missão na planilha direto pelo chat. (Ex: `/missoes-add Arrumar a cama, 10, Segunda`)
-- `/lojinha-add Descrição, Custo`: Cadastra um novo benefício na lojinha. (Ex: `/lojinha-add 1 hora de videogame, 50`)
+Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
 
-Pronto! Seu sistema de tarefas está rodando! 🚀
+```bash
+composer require laravel/boost --dev
+
+php artisan boost:install
+```
+
+Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+
+## Contributing
+
+Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+
+## Code of Conduct
+
+In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+
+## Security Vulnerabilities
+
+If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+
+## License
+
+The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
