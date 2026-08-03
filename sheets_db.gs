@@ -45,7 +45,11 @@ function setSetting(key, value) {
  */
 function isParent(telegramId) {
   const users = getUsers();
-  return users.find(u => u.id == telegramId && u.role.toLowerCase() === 'pai') != null;
+  return users.find(u => {
+    if (u.id != telegramId) return false;
+    const role = u.role.toLowerCase().trim();
+    return role === 'pai' || role === 'mãe' || role === 'mae';
+  }) != null;
 }
 
 /**

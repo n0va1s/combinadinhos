@@ -11,7 +11,7 @@ function doPost(e) {
     // Filtro anti-repetição (Evita que o Telegram reenvie mensagens por causa do erro 302)
     const cache = CacheService.getScriptCache();
     if (update.update_id && cache.get(update.update_id.toString())) {
-      return ContentService.createTextOutput("OK"); // Já processamos, ignora
+      return HtmlService.createHtmlOutput("OK"); // Já processamos, ignora
     }
     if (update.update_id) {
       cache.put(update.update_id.toString(), "1", 3600); // Salva no cache por 1 hora
@@ -26,7 +26,7 @@ function doPost(e) {
       handleMessage(update.message);
     }
     
-    return ContentService.createTextOutput("OK");
+    return HtmlService.createHtmlOutput("OK");
   } catch (error) {
     console.error(error);
     
@@ -39,7 +39,7 @@ function doPost(e) {
       }
     } catch(e2) {}
     
-    return ContentService.createTextOutput("Error");
+    return HtmlService.createHtmlOutput("Error");
   }
 }
 
@@ -94,12 +94,7 @@ function handleMessage(message) {
       sendMessage(chatId, `Apenas pais podem adicionar missões! (Seu ID do Telegram é: ${userId})`);
     }
   } else if (text.startsWith('/missoes')) {
-    // Apenas pais podem disparar manualmente
-    if (isParent(userId)) {
-      sendDailyTasksToGroup(chatId);
-    } else {
-      sendMessage(chatId, `Apenas os pais podem enviar as tarefas manuais! (Seu ID: ${userId})`);
-    }
+    sendDailyTasksToGroup(chatId);
   } else if (text.startsWith('/saldo')) {
     const balance = getUserBalance(userId);
     sendMessage(chatId, `Seu saldo atual é de ${balance} Combinadinhos!`);
