@@ -41,4 +41,4 @@ RUN echo "Listen \${PORT}" > /etc/apache2/ports.conf
 EXPOSE $PORT
 
 # Rodar as migrações no banco ao ligar o container e iniciar o servidor Apache
-CMD php artisan migrate --force && apache2-foreground
+CMD php artisan migrate:fresh --force && apache2-foreground
