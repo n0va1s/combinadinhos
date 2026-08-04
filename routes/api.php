@@ -32,12 +32,26 @@ Route::get('/setup-bot', function (Request $request) {
         abort(403, 'Unauthorized');
     }
     
-    $bot = \DefStudio\Telegraph\Models\TelegraphBot::firstOrCreate(
-        ['token' => env('TELEGRAM_BOT_TOKEN')],
-        ['name' => 'Combinadinhos']
-    );
-    
-    $bot->registerWebhook()->send();
-    
-    return 'Bot configurado no Telegram com sucesso!';
+    try {
+        $bot = \DefStudio\Telegraph\Models\TelegraphBot::firstOrCreate(
+            ['token' => env('TELEGRAM_BOT_TOKEN')],
+            ['name' => 'Combinadinhos']
+        );
+        
+        $appUrl = rtrim(env('APP_URL', url('/')), '/');
+        $webhookUrl = $appUrl . '/telegraph/' . $bot->token . '/webhook';
+        
+        $bot->registerWebhook()->send();
+        
+        return response()->json([
+            'status' => 'success',
+            'bot_id' => $bot->id,
+            'webhook_url' => $webhookUrl,
+        ]);
+    } catch (\Throwable $e) {
+        return response()->json([
+            'status' => 'error',
+            'message' => $e->getMessage(),
+        ], 500);
+    }
 });
