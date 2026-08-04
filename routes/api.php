@@ -38,15 +38,20 @@ Route::get('/setup-bot', function (Request $request) {
             ['name' => 'Combinadinhos']
         );
         
-        $appUrl = rtrim(env('APP_URL', url('/')), '/');
+        $appUrl = 'https://combinadinhos.onrender.com';
         $webhookUrl = $appUrl . '/telegraph/' . $bot->token . '/webhook';
         
-        $bot->registerWebhook()->send();
+        // Registra o webhook diretamente via API do Telegram (sem depender do APP_URL)
+        $response = \Illuminate\Support\Facades\Http::post(
+            "https://api.telegram.org/bot{$bot->token}/setWebhook",
+            ['url' => $webhookUrl]
+        );
         
         return response()->json([
             'status' => 'success',
             'bot_id' => $bot->id,
             'webhook_url' => $webhookUrl,
+            'telegram_response' => $response->json(),
         ]);
     } catch (\Throwable $e) {
         return response()->json([
