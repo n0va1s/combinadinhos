@@ -56,21 +56,31 @@ class TelegraphHandler extends WebhookHandler
             return;
         }
 
-        $textoMensagem = "🎯 *MISSÕES DE HOJE* 🎯\n\nEscolha uma missão para marcar como feita ou aplicar:";
+        $textoMensagem = "🎯 *MISSÕES DE HOJE* 🎯\n\n";
         $tecladoBotoes = Keyboard::make();
+        $botoesLinha = [];
+        $indice = 1;
         
         foreach ($listaMissoes as $umaMissao) {
-            $rotuloBotao = $umaMissao->coins >= 0 
-                ? "✅ {$umaMissao->description}\n(+{$umaMissao->coins} pts)"
-                : "⚠️ {$umaMissao->description}\n({$umaMissao->coins} pts)";
+            $icone = $umaMissao->coins >= 0 ? "✅" : "⚠️";
+            $textoMensagem .= "{$indice}. {$icone} *{$umaMissao->description}* ({$umaMissao->coins} pts)\n";
 
-            $tecladoBotoes->row([
-                Button::make($rotuloBotao)
-                    ->action('feito_missao')
-                    ->param('id', $umaMissao->id)
-            ]);
+            $botoesLinha[] = Button::make("{$icone} {$indice}")
+                ->action('feito_missao')
+                ->param('id', $umaMissao->id);
+
+            if (count($botoesLinha) === 3) {
+                $tecladoBotoes->row($botoesLinha);
+                $botoesLinha = [];
+            }
+            $indice++;
+        }
+
+        if (!empty($botoesLinha)) {
+            $tecladoBotoes->row($botoesLinha);
         }
         
+        $textoMensagem .= "\nEscolha o número correspondente abaixo:";
         $this->chat->html($textoMensagem)->keyboard($tecladoBotoes)->send();
     }
     
@@ -82,17 +92,30 @@ class TelegraphHandler extends WebhookHandler
             return;
         }
         
-        $textoMensagem = "🎁 *LOJINHA DOS COMBINADINHOS* 🎁\n\nEscolha uma recompensa para comprar:";
+        $textoMensagem = "🎁 *LOJINHA DOS COMBINADINHOS* 🎁\n\n";
         $tecladoBotoes = Keyboard::make();
+        $botoesLinha = [];
+        $indice = 1;
 
         foreach ($listaRecompensas as $umaRecompensa) {
-            $tecladoBotoes->row([
-                Button::make("🛍️ {$umaRecompensa->description}\n(Custa: {$umaRecompensa->cost} pts)")
-                    ->action('comprar_recompensa')
-                    ->param('id', $umaRecompensa->id)
-            ]);
+            $textoMensagem .= "{$indice}. 🛍️ *{$umaRecompensa->description}* (Custa: {$umaRecompensa->cost} pts)\n";
+
+            $botoesLinha[] = Button::make("🛍️ {$indice}")
+                ->action('comprar_recompensa')
+                ->param('id', $umaRecompensa->id);
+
+            if (count($botoesLinha) === 3) {
+                $tecladoBotoes->row($botoesLinha);
+                $botoesLinha = [];
+            }
+            $indice++;
+        }
+
+        if (!empty($botoesLinha)) {
+            $tecladoBotoes->row($botoesLinha);
         }
         
+        $textoMensagem .= "\nSelecione o número correspondente abaixo para comprar:";
         $this->chat->html($textoMensagem)->keyboard($tecladoBotoes)->send();
     }
 
