@@ -46,8 +46,8 @@ class TelegraphHandler extends WebhookHandler
         
         foreach ($listaMissoes as $umaMissao) {
             $rotuloBotao = $umaMissao->coins >= 0 
-                ? "✅ {$umaMissao->description} (+{$umaMissao->coins} pts)"
-                : "⚠️ {$umaMissao->description} ({$umaMissao->coins} pts)";
+                ? "✅ {$umaMissao->description}\n(+{$umaMissao->coins} pts)"
+                : "⚠️ {$umaMissao->description}\n({$umaMissao->coins} pts)";
 
             $tecladoBotoes->row([
                 Button::make($rotuloBotao)
@@ -72,7 +72,7 @@ class TelegraphHandler extends WebhookHandler
 
         foreach ($listaRecompensas as $umaRecompensa) {
             $tecladoBotoes->row([
-                Button::make("🛍️ {$umaRecompensa->description} (Custa: {$umaRecompensa->cost} pts)")
+                Button::make("🛍️ {$umaRecompensa->description}\n(Custa: {$umaRecompensa->cost} pts)")
                     ->action('comprar_recompensa')
                     ->param('id', $umaRecompensa->id)
             ]);
