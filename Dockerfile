@@ -33,8 +33,10 @@ RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cac
 RUN composer install --optimize-autoloader --no-dev
 
 # Configurar o Apache para apontar para a pasta /public do Laravel
-RUN sed -i 's!/var/www/html!/var/www/html/public!g' /etc/apache2/sites-available/000-default.conf
-RUN echo "<Directory /var/www/html/public>\n\tAllowOverride All\n</Directory>" >> /etc/apache2/apache2.conf
+ENV APACHE_DOCUMENT_ROOT /var/www/html/public
+RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-available/*.conf
+RUN sed -ri -e 's!/var/www/!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/apache2.conf /etc/apache2/conf-available/*.conf
+RUN sed -i 's/AllowOverride None/AllowOverride All/g' /etc/apache2/apache2.conf
 RUN a2enmod rewrite
 
 # O Render injeta dinamicamente a variável de ambiente $PORT
