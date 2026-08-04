@@ -15,41 +15,56 @@ class SendDailyTasks extends Command
 
     public function handle()
     {
-        $groupChatId = config('combinadinhos.group_chat_id');
-        if (!$groupChatId) {
+        $identificadorChatGrupo = config('combinadinhos.group_chat_id');
+        if (!$identificadorChatGrupo) {
             $this->error('GROUP_CHAT_ID não configurado.');
             return;
         }
 
-        $bot = TelegraphBot::first();
-        if (!$bot) {
+        $botTelegram = TelegraphBot::first();
+        if (!$botTelegram) {
             $this->error('Bot não cadastrado.');
             return;
         }
 
-        $chat = TelegraphChat::where('chat_id', $groupChatId)->first();
-        if (!$chat) {
+        $chatGrupo = TelegraphChat::where('chat_id', $identificadorChatGrupo)->first();
+        if (!$chatGrupo) {
             // Cria o chat se não existir localmente
-            $chat = $bot->chats()->create([
-                'chat_id' => $groupChatId,
+            $chatGrupo = $botTelegram->chats()->create([
+                'chat_id' => $identificadorChatGrupo,
                 'name' => 'Grupo Familia',
             ]);
         }
 
-        $missions = Mission::all();
-        if ($missions->isEmpty()) {
+        $diasDaSemana = [
+            0 => 'domingo',
+            1 => 'segunda',
+            2 => 'terça',
+            3 => 'quarta',
+            4 => 'quinta',
+            5 => 'sexta',
+            6 => 'sábado',
+        ];
+        $diaSemanaAtual = $diasDaSemana[now()->dayOfWeek];
+
+        $listaMissoes = Mission::whereNull('day')
+            ->orWhere('day', '')
+            ->orWhereRaw('LOWER(day) = ?', [$diaSemanaAtual])
+            ->get();
+
+        if ($listaMissoes->isEmpty()) {
             $this->info('Nenhuma missão para hoje.');
             return;
         }
 
-        $text = "🎯 *MISSÕES DE HOJE* 🎯\n\n";
-        foreach ($missions as $mission) {
-            $text .= "• {$mission->description} (+{$mission->coins} pts)\n";
+        $textoMensagem = "🎯 *MISSÕES DE HOJE* 🎯\n\n";
+        foreach ($listaMissoes as $umaMissao) {
+            $textoMensagem .= "• {$umaMissao->description} (+{$umaMissao->coins} pts)\n";
         }
         
-        $text .= "\nBora lá cumprir tudo!";
+        $textoMensagem .= "\nBora lá cumprir tudo!";
         
-        $chat->html($text)->send();
+        $chatGrupo->html($textoMensagem)->send();
         $this->info('Missões enviadas.');
     }
 }

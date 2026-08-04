@@ -35,9 +35,24 @@ class TelegraphHandler extends WebhookHandler
     
     public function missoes(): void
     {
-        $listaMissoes = Mission::all();
+        $diasDaSemana = [
+            0 => 'domingo',
+            1 => 'segunda',
+            2 => 'terça',
+            3 => 'quarta',
+            4 => 'quinta',
+            5 => 'sexta',
+            6 => 'sábado',
+        ];
+        $diaSemanaAtual = $diasDaSemana[now()->dayOfWeek];
+
+        $listaMissoes = Mission::whereNull('day')
+            ->orWhere('day', '')
+            ->orWhereRaw('LOWER(day) = ?', [$diaSemanaAtual])
+            ->get();
+
         if ($listaMissoes->isEmpty()) {
-            $this->chat->html("Não há missões cadastradas!")->send();
+            $this->chat->html("Não há missões cadastradas para hoje!")->send();
             return;
         }
 
