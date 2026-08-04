@@ -26,8 +26,8 @@ WORKDIR /var/www/html
 # Copiar os arquivos do projeto para o container
 COPY . .
 
-# Dar permissão para o Laravel gravar nas pastas de cache e logs
-RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
+# Dar permissão para o Apache ler todos os arquivos e gravar em logs/cache
+RUN chown -R www-data:www-data /var/www/html
 
 # Instalar pacotes do Laravel
 RUN composer install --optimize-autoloader --no-dev
