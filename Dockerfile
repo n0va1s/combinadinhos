@@ -37,7 +37,8 @@ ENV APACHE_DOCUMENT_ROOT /var/www/html/public
 RUN sed -ri -e 's!/var/www/html!/var/www/html/public!g' /etc/apache2/sites-available/*.conf
 RUN sed -ri -e 's!/var/www/!/var/www/html/public/!g' /etc/apache2/apache2.conf /etc/apache2/conf-available/*.conf
 RUN sed -i 's/AllowOverride None/AllowOverride All/g' /etc/apache2/apache2.conf
-RUN a2enmod rewrite
+# Enable access to Laravel public folder
+RUN echo "<Directory /var/www/html/public>\n    Options Indexes FollowSymLinks\n    AllowOverride All\n    Require all granted\n</Directory>" > /etc/apache2/conf-available/laravel.conf && a2enconf laravel
 
 # O Render injeta dinamicamente a variável de ambiente $PORT
 RUN echo "Listen \${PORT}" > /etc/apache2/ports.conf
