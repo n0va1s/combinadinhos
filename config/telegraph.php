@@ -35,7 +35,7 @@ return [
          * Telegraph will use this class to handle webhooks.
          * It must extend the DefStudio\Telegraph\Handlers\WebhookHandler class
          */
-        'webhook_handler' => \App\Http\Webhooks\TelegraphHandler::class,
+        'handler' => \App\Http\Webhooks\TelegraphHandler::class,
 
         /*
          * Middleware to be applied to the webhook route
@@ -109,12 +109,12 @@ return [
         /*
          * if enabled, allows messages and commands from unregistered chats
          */
-        'allow_messages_from_unknown_chats' => false,
+        'allow_messages_from_unknown_chats' => true,
 
         /*
          * if enabled, store unknown chats as new TelegraphChat models
          */
-        'store_unknown_chats_in_db' => false,
+        'store_unknown_chats_in_db' => true,
     ],
 
     /*

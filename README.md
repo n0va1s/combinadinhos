@@ -1,58 +1,205 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# 🎯 Combinadinhos Bot
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Bot do Telegram para gestão de missões e recompensas em família. As crianças completam missões diárias e acumulam pontos (Combinadinhos) que podem ser trocados por recompensas na lojinha.
 
-## About Laravel
+---
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+## 📋 Comandos do Bot
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+### 👶 Comandos para todos os membros
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+| Comando | Descrição |
+|---|---|
+| `/start` | Inicia o bot e exibe as boas-vindas com instruções básicas |
+| `/missoes` | Lista todas as missões do dia com seus respectivos pontos |
+| `/saldo` | Mostra o saldo atual de Combinadinhos do usuário |
+| `/lojinha` | Exibe todas as recompensas disponíveis e seus custos em pontos |
 
-## Learning Laravel
+### 👨‍👩‍👧 Comandos exclusivos para pais/mães
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+> **Atenção:** Os comandos abaixo são restritos a usuários com a role `pai` ou `mãe` no banco de dados.
 
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+| Comando | Sintaxe | Descrição |
+|---|---|---|
+| `/missoes-add` | `/missoes-add Descrição, Pontos, [Dia]` | Adiciona uma nova missão. O campo Dia é opcional |
+| `/lojinha-add` | `/lojinha-add Descrição, Custo` | Adiciona uma nova recompensa à lojinha |
 
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
+#### Exemplos de uso
 
-## Agentic Development
+```
+/missoes-add Arrumar a cama, 10
+/missoes-add Fazer a lição de casa, 20, segunda
 
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
-
-```bash
-composer require laravel/boost --dev
-
-php artisan boost:install
+/lojinha-add Sorvete, 50
+/lojinha-add 1 hora de videogame, 100
 ```
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+---
 
-## Contributing
+## 🚀 Instalação e Configuração
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+### Pré-requisitos
 
-## Code of Conduct
+- PHP **8.3+**
+- Composer
+- Node.js e npm
+- PostgreSQL (produção) ou SQLite (desenvolvimento)
+- Token de um bot do Telegram (obtido via [@BotFather](https://t.me/BotFather))
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+---
 
-## Security Vulnerabilities
+### ⚙️ Configuração Local
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+#### 1. Clone o repositório
 
-## License
+```bash
+git clone <url-do-repositorio>
+cd combinadinhos
+```
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+#### 2. Instale as dependências
+
+```bash
+composer install
+npm install
+```
+
+#### 3. Configure as variáveis de ambiente
+
+```bash
+cp .env.example .env
+php artisan key:generate
+```
+
+Edite o arquivo `.env` e preencha as variáveis obrigatórias:
+
+```env
+# Banco de dados
+DB_CONNECTION=pgsql
+DB_HOST=127.0.0.1
+DB_PORT=5432
+DB_DATABASE=combinadinhos
+DB_USERNAME=seu_usuario
+DB_PASSWORD=sua_senha
+
+# Bot do Telegram
+TELEGRAM_BOT_TOKEN="seu_token_aqui"
+COMBINADINHOS_GROUP_CHAT_ID="id_do_grupo_aqui"
+COMBINADINHOS_REMINDER_TIME="07:00"
+
+# Chave secreta para o cron job
+CRON_SECRET="uma_chave_secreta_forte"
+```
+
+#### 4. Execute as migrations
+
+```bash
+php artisan migrate
+```
+
+#### 5. Configure o webhook do Telegram
+
+```bash
+php artisan telegraph:set-webhook
+```
+
+Ou via rota HTTP (útil para ambientes sem acesso a CLI):
+
+```
+GET /api/setup-bot?secret=sua_chave_secreta
+```
+
+#### 6. Cadastre o usuário pai/mãe no banco
+
+Insira o seu `telegram_id` na tabela `users` com a role `pai` ou `mãe`. O bot exibe seu ID no comando `/start`.
+
+```sql
+INSERT INTO users (name, telegram_id, role, balance)
+VALUES ('Seu Nome', 123456789, 'pai', 0);
+```
+
+#### 7. Inicie o servidor de desenvolvimento
+
+```bash
+composer dev
+```
+
+> O comando `composer dev` sobe simultaneamente o servidor PHP, o queue worker, o pail (logs) e o Vite.
+
+---
+
+### 🐳 Deploy com Docker
+
+#### 1. Build da imagem
+
+```bash
+docker build -t combinadinhos .
+```
+
+#### 2. Execute o container
+
+```bash
+docker run -p 8080:8080 \
+  -e APP_KEY=sua_app_key \
+  -e TELEGRAM_BOT_TOKEN=seu_token \
+  -e DB_CONNECTION=pgsql \
+  -e DB_HOST=seu_host_db \
+  -e DB_DATABASE=combinadinhos \
+  -e DB_USERNAME=usuario \
+  -e DB_PASSWORD=senha \
+  -e CRON_SECRET=chave_secreta \
+  combinadinhos
+```
+
+---
+
+### ☁️ Deploy no Render
+
+O projeto está configurado para deploy no [Render](https://render.com).
+
+1. Conecte o repositório ao Render como **Web Service**
+2. Configure as variáveis de ambiente no painel do Render
+3. O `Dockerfile` já está configurado e fará o build automaticamente
+4. Após o deploy, configure o webhook acessando:
+
+```
+https://combinadinhos.onrender.com/api/setup-bot?secret=sua_chave_secreta
+```
+
+---
+
+### ⏰ Envio Automático de Missões Diárias
+
+Para que o bot envie as missões automaticamente todo dia, configure um cron job externo (ex: [cron-job.org](https://cron-job.org)) que faça uma requisição GET para:
+
+```
+GET https://seu-dominio.com/api/trigger-daily-tasks?secret=sua_chave_secreta
+```
+
+Configure o horário desejado na variável `COMBINADINHOS_REMINDER_TIME` do `.env`.
+
+---
+
+## 🗄️ Estrutura do Banco de Dados
+
+| Tabela | Descrição |
+|---|---|
+| `users` | Membros da família com saldo e role (filho, pai, mãe) |
+| `missions` | Missões/tarefas disponíveis com pontuação |
+| `rewards` | Recompensas disponíveis na lojinha com custo em pontos |
+| `transactions` | Histórico de transações de pontos |
+
+---
+
+## 🛠️ Stack Tecnológica
+
+- **Framework:** Laravel 13
+- **Bot Telegram:** [DefStudio Telegraph](https://github.com/defstudio/telegraph)
+- **Banco de Dados:** PostgreSQL (produção) / SQLite (desenvolvimento)
+- **Deploy:** Docker + Render
+
+---
+
+## 📄 Licença
+
+Este projeto é de uso privado e familiar. ❤️
