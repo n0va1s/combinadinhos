@@ -9,11 +9,13 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('transactions', function (Blueprint $table) {
-            $table->id();
-            $table->string('action'); // ex: 'Ganhou', 'Gastou'
-            $table->string('user_name'); // Registra o nome do usuário no momento da ação
-            $table->string('detail'); // ex: 'Missão: Arrumar cama', 'Recompensa: Videogame'
-            $table->integer('amount'); // ex: +10, -50
+            $table->uuid('id')->primary();
+            $table->foreignUuid('user_id')->nullable()->constrained('users')->cascadeOnDelete();
+            $table->string('action');
+            $table->string('user_name');
+            $table->string('detail');
+            $table->integer('amount');
+            $table->string('status')->default('approved');
             $table->timestamps();
         });
     }
