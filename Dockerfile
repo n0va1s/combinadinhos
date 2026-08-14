@@ -1,3 +1,12 @@
+# Stage 1: Compilar assets do front-end com Node/Vite
+FROM node:20-alpine AS assets-builder
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci
+COPY . .
+RUN npm run build
+
+# Stage 2: Imagem final com Apache e PHP
 FROM php:8.4-apache
 
 # Instalar dependências de sistema
@@ -29,6 +38,9 @@ WORKDIR /var/www/html
 
 # Copiar os arquivos do projeto
 COPY . .
+
+# Copiar os assets compilados do estágio 1
+COPY --from=assets-builder /app/public/build /var/www/html/public/build
 
 # Definir permissões
 RUN chown -R www-data:www-data /var/www/html \
