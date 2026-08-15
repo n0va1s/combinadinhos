@@ -158,15 +158,22 @@
             <div class="feature-item">
                 <span class="feature-icon">🎯</span>
                 <div class="feature-text">
-                    <strong>Missões e Hábitos</strong>
-                    <span>Defina tarefas diárias e crie rotinas saudáveis.</span>
+                    <strong>Missões Rápidas e Hábitos</strong>
+                    <span>Defina tarefas diárias ou crie novas missões com aviso imediato.</span>
                 </div>
             </div>
             <div class="feature-item">
-                <span class="feature-icon">🪙</span>
+                <span class="feature-icon">🎁</span>
                 <div class="feature-text">
-                    <strong>Recompensas e Moedas</strong>
-                    <span>Motive pelo reforço positivo com prêmios combinados.</span>
+                    <strong>Loja de Recompensas</strong>
+                    <span>As crianças trocam moedas por prêmios e os pais aprovam tudo pelo app!</span>
+                </div>
+            </div>
+            <div class="feature-item">
+                <span class="feature-icon">👨‍👩‍👧‍👦</span>
+                <div class="feature-text">
+                    <strong>Convidar Familiares</strong>
+                    <span>Gere links de convite rápido para adicionar outros pais ou filhos.</span>
                 </div>
             </div>
             <div class="feature-item">
