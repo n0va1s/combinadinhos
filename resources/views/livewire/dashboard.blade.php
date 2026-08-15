@@ -21,6 +21,7 @@ state([
     'showNewMissionSection' => false,
     'newTaskDesc' => '',
     'newTaskCoins' => '',
+    'newTaskDay' => '',
 ]);
 
 mount(function () {
@@ -123,12 +124,13 @@ $addQuickTask = function () {
     Mission::create([
         'description' => $this->newTaskDesc,
         'coins' => (int) $this->newTaskCoins,
-        'day' => 'Hoje',
+        'day' => $this->newTaskDay ?: null,
         'family_id' => $this->selectedUser->family_id
     ]);
     
     $this->newTaskDesc = '';
     $this->newTaskCoins = '';
+    $this->newTaskDay = '';
     $this->loadMissions();
 };
 
@@ -430,14 +432,24 @@ $logout = function () {
     @if(auth()->check() && in_array(auth()->user()->role->value, ['P', 'M']) && $showNewMissionSection)
         <div style="padding: 0 15px; margin-bottom: 15px;">
             <div class="glass-card" style="margin: 0;">
-                <h3 style="font-size: 1.1rem; margin-bottom: 12px; color: #c084fc;">Painel dos Pais (Notificar)</h3>
+                <h3 style="font-size: 1.1rem; margin-bottom: 12px; color: #c084fc;">Novas missões</h3>
                 <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 12px;">
                     Adicione uma nova tarefa rápida para notificar imediatamente as crianças com aviso em texto e sinal sonoro!
                 </p>
                 <form wire:submit.prevent="addQuickTask" style="display: flex; flex-direction: column; gap: 10px;">
                     <input type="text" wire:model="newTaskDesc" placeholder="Ex: Escovar os dentes" style="background: rgba(0,0,0,0.2); border: 1px solid var(--card-border); border-radius: 8px; padding: 10px; color: #fff; font-family: inherit;" required>
                     <input type="number" wire:model="newTaskCoins" placeholder="Quantas moedas vale? Ex: 10" style="background: rgba(0,0,0,0.2); border: 1px solid var(--card-border); border-radius: 8px; padding: 10px; color: #fff; font-family: inherit;" required>
-                    <button type="submit" class="btn-primary" style="background: #a855f7;">Adicionar e Chamar Atenção 🔔</button>
+                    <select wire:model="newTaskDay" onchange="this.style.color = this.value === '' ? '#9ca3af' : '#fff'" style="background: rgba(0,0,0,0.2); border: 1px solid var(--card-border); border-radius: 8px; padding: 10px; color: {{ empty($newTaskDay) ? '#9ca3af' : '#fff' }}; font-family: inherit; outline: none; cursor: pointer;">
+                        <option value="" style="color: #9ca3af;" disabled selected hidden>Um dia específico?</option>
+                        <option value="Segunda" style="color: #000;">Segunda</option>
+                        <option value="Terça" style="color: #000;">Terça</option>
+                        <option value="Quarta" style="color: #000;">Quarta</option>
+                        <option value="Quinta" style="color: #000;">Quinta</option>
+                        <option value="Sexta" style="color: #000;">Sexta</option>
+                        <option value="Sábado" style="color: #000;">Sábado</option>
+                        <option value="Domingo" style="color: #000;">Domingo</option>
+                    </select>
+                    <button type="submit" class="btn-primary" style="background: #a855f7;">Salvar</button>
                 </form>
             </div>
         </div>
