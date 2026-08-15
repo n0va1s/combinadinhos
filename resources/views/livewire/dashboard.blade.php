@@ -4,6 +4,7 @@ use App\Models\User;
 use App\Models\Mission;
 use App\Models\Transaction;
 use App\Models\FamilyInvitation;
+use App\Models\Reward;
 use Illuminate\Support\Facades\Auth;
 use function Livewire\Volt\{state, mount};
 
@@ -22,6 +23,10 @@ state([
     'newTaskDesc' => '',
     'newTaskCoins' => '',
     'newTaskDay' => '',
+    'showRewardsModal' => false,
+    'rewards' => [],
+    'newRewardDesc' => '',
+    'newRewardCost' => '',
 ]);
 
 mount(function () {
@@ -44,6 +49,7 @@ mount(function () {
     $this->loadUsers();
     $this->loadMissions();
     $this->loadPendingTransactions();
+    $this->loadRewards();
 });
 
 $loadUsers = function () {
@@ -115,6 +121,7 @@ $selectUser = function ($id) {
     $this->selectedUser = User::find($id);
     $this->loadUsers();
     $this->loadMissions();
+    $this->loadRewards();
 };
 
 $addQuickTask = function () {
@@ -132,6 +139,101 @@ $addQuickTask = function () {
     $this->newTaskCoins = '';
     $this->newTaskDay = '';
     $this->loadMissions();
+};
+
+$loadRewards = function () {
+    if ($this->selectedUser && $this->selectedUser->family_id) {
+        $this->rewards = Reward::where('family_id', $this->selectedUser->family_id)->orderBy('cost', 'asc')->get();
+    } else {
+        $this->rewards = [];
+    }
+};
+
+$addReward = function () {
+    if (!$this->selectedUser || !$this->selectedUser->family_id) return;
+    if (!$this->newRewardDesc || !$this->newRewardCost) return;
+
+    Reward::create([
+        'description' => $this->newRewardDesc,
+        'cost' => (int) $this->newRewardCost,
+        'family_id' => $this->selectedUser->family_id
+    ]);
+    
+    $this->newRewardDesc = '';
+    $this->newRewardCost = '';
+    $this->loadRewards();
+    
+    \Flux::toast(
+        heading: 'Recompensa Adicionada! 🎁',
+        text: 'Nova recompensa disponível para resgate.',
+        variant: 'success'
+    );
+};
+
+$buyReward = function ($rewardId) {
+    if (!$this->selectedUser) return;
+    
+    $reward = Reward::find($rewardId);
+    if (!$reward) return;
+
+    $loggedInUser = auth()->user();
+    $isParent = $loggedInUser && in_array($loggedInUser->role->value, ['P', 'M']);
+    
+    if ($isParent) {
+        $this->selectedUser->balance -= $reward->cost;
+        $this->selectedUser->save();
+
+        Transaction::create([
+            'action' => 'Resgatou',
+            'user_name' => $this->selectedUser->name,
+            'detail' => 'Resgatou recompensa: ' . $reward->description,
+            'amount' => -$reward->cost,
+            'status' => 'approved',
+            'user_id' => $this->selectedUser->id,
+        ]);
+
+        $this->loadUsers();
+        
+        \Flux::toast(
+            heading: 'Recompensa Resgatada! 🎉',
+            text: "{$this->selectedUser->name} resgatou: {$reward->description}",
+            variant: 'success'
+        );
+        
+        $this->dispatch('play-task-alert', ['sound' => 'applause']);
+    } else {
+        if ($this->selectedUser->balance < $reward->cost) {
+            \Flux::toast(
+                heading: 'Saldo Insuficiente 😢',
+                text: "Você precisa de mais " . ($reward->cost - $this->selectedUser->balance) . " moedas.",
+                variant: 'danger'
+            );
+            return;
+        }
+
+        Transaction::create([
+            'action' => 'Resgate',
+            'user_name' => $this->selectedUser->name,
+            'detail' => 'Aguardando Aprovação (Resgate): ' . $reward->description,
+            'amount' => -$reward->cost,
+            'status' => 'pending',
+            'user_id' => $this->selectedUser->id,
+        ]);
+
+        \Flux::toast(
+            heading: 'Enviado para Aprovação! ⏳',
+            text: "Seu pedido de resgate foi enviado.",
+            variant: 'info'
+        );
+    }
+};
+
+$deleteReward = function ($rewardId) {
+    $reward = Reward::find($rewardId);
+    if ($reward) {
+        $reward->delete();
+        $this->loadRewards();
+    }
 };
 
 $generateInvite = function () {
@@ -276,7 +378,7 @@ $logout = function () {
         <span class="header-logo">Combinadinhos 🤝</span>
         @if($selectedUser)
             <div style="display: flex; align-items: center; gap: 8px;">
-                <div class="glass-card" style="margin: 0; padding: 6px 14px; border-radius: 12px; display: flex; align-items: center; gap: 8px;">
+                <div wire:click="$toggle('showRewardsModal')" class="glass-card" style="margin: 0; padding: 6px 14px; border-radius: 12px; display: flex; align-items: center; gap: 8px; cursor: pointer; transition: transform 0.1s;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
                     <span style="font-size: 0.9rem; font-weight: 600;">🪙 {{ $selectedUser->balance }}</span>
                 </div>
                 <button wire:click="logout" class="btn-primary" style="background: #ef4444; font-size: 0.85rem; padding: 6px 12px; box-shadow: none;">Sair</button>
@@ -425,6 +527,60 @@ $logout = function () {
                     </div>
                 </div>
             @endforeach
+        </div>
+    @endif
+
+    <!-- Modal / Seção de Recompensas -->
+    @if($showRewardsModal)
+        <div style="padding: 0 15px; margin-bottom: 15px;">
+            <div class="glass-card" style="margin: 0; border: 2px solid #a855f7;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                    <h3 style="font-size: 1.2rem; font-weight: 800; color: #c084fc; margin: 0;">Loja de Recompensas 🎁</h3>
+                    <button wire:click="$toggle('showRewardsModal')" style="background: none; border: none; color: var(--text-secondary); cursor: pointer; font-size: 1.2rem;">&times;</button>
+                </div>
+                
+                @if(count($rewards) === 0)
+                    <p style="font-size: 0.9rem; color: var(--text-secondary); text-align: center; margin-bottom: 15px;">
+                        Nenhuma recompensa cadastrada.
+                    </p>
+                @else
+                    <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px;">
+                        @foreach($rewards as $reward)
+                            <div style="background: rgba(0,0,0,0.2); border: 1px solid var(--card-border); border-radius: 10px; padding: 12px; display: flex; justify-content: space-between; align-items: center;">
+                                <div>
+                                    <h4 style="font-size: 1rem; font-weight: 700; margin-bottom: 4px;">{{ $reward->description }}</h4>
+                                    <span style="font-size: 0.85rem; color: #fbbf24; font-weight: 600;">
+                                        🪙 {{ $reward->cost }} moedas
+                                    </span>
+                                </div>
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    @if(auth()->check() && in_array(auth()->user()->role->value, ['P', 'M']))
+                                        <button wire:click="deleteReward('{{ $reward->id }}')" style="background: rgba(239, 68, 68, 0.2); border: none; color: #f87171; width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; cursor: pointer;" title="Excluir Recompensa" onclick="confirm('Excluir recompensa?') || event.stopImmediatePropagation()">
+                                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" style="width: 16px; height: 16px;">
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
+                                            </svg>
+                                        </button>
+                                    @endif
+                                    <button wire:click="buyReward('{{ $reward->id }}')" class="btn-primary" style="background: var(--accent); font-size: 0.85rem; padding: 6px 12px; box-shadow: none;">
+                                        Resgatar
+                                    </button>
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                @endif
+                
+                @if(auth()->check() && in_array(auth()->user()->role->value, ['P', 'M']))
+                    <div style="border-top: 1px solid var(--card-border); padding-top: 15px;">
+                        <h4 style="font-size: 0.95rem; margin-bottom: 10px; color: #e2e8f0;">Adicionar Recompensa (Pais)</h4>
+                        <form wire:submit.prevent="addReward" style="display: flex; gap: 8px;">
+                            <input type="text" wire:model="newRewardDesc" placeholder="Ex: Sorvete" style="flex: 2; background: rgba(0,0,0,0.2); border: 1px solid var(--card-border); border-radius: 8px; padding: 8px; color: #fff; font-size: 0.85rem;" required>
+                            <input type="number" wire:model="newRewardCost" placeholder="Valor" style="flex: 1; background: rgba(0,0,0,0.2); border: 1px solid var(--card-border); border-radius: 8px; padding: 8px; color: #fff; font-size: 0.85rem;" required>
+                            <button type="submit" class="btn-primary" style="background: #a855f7; padding: 8px 12px; font-size: 0.85rem; box-shadow: none;">+</button>
+                        </form>
+                    </div>
+                @endif
+            </div>
         </div>
     @endif
 
