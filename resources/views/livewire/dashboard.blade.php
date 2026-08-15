@@ -25,8 +25,20 @@ state([
 
 mount(function () {
     if (auth()->check()) {
-        $this->selectedUser = auth()->user();
-        $this->selectedUserId = $this->selectedUser->id;
+        $user = auth()->user();
+        $this->selectedUser = $user;
+        $this->selectedUserId = $user->id;
+
+        // Se for pai/mãe, tenta auto-selecionar o primeiro filho da família
+        if (in_array($user->role->value, ['P', 'M']) && $user->family_id) {
+            $firstChild = User::where('family_id', $user->family_id)
+                ->whereIn('role', ['S', 'D'])
+                ->first();
+            if ($firstChild) {
+                $this->selectedUser = $firstChild;
+                $this->selectedUserId = $firstChild->id;
+            }
+        }
     }
     $this->loadUsers();
     $this->loadMissions();
@@ -349,23 +361,32 @@ $logout = function () {
 
             @if(auth()->check() && in_array(auth()->user()->role->value, ['P', 'M']))
                 <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid var(--card-border);">
-                    <span style="font-size: 0.85rem; color: var(--text-secondary); display: block; margin-bottom: 8px;">Registrar em nome de:</span>
-                    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-                        <button wire:click="selectUser('{{ auth()->user()->id }}')" 
-                                class="btn-primary" 
-                                style="padding: 6px 12px; font-size: 0.8rem; border-radius: 8px; {{ $selectedUserId === auth()->user()->id ? 'background: var(--accent);' : 'background: rgba(255,255,255,0.05); box-shadow: none;' }}">
-                            Meu Perfil ({{ auth()->user()->name }})
-                        </button>
-                        @foreach($users as $user)
-                            @if(in_array($user->role->value, ['S', 'D']))
-                                <button wire:click="selectUser('{{ $user->id }}')" 
-                                        class="btn-primary" 
-                                        style="padding: 6px 12px; font-size: 0.8rem; border-radius: 8px; {{ $selectedUserId === $user->id ? 'background: var(--accent);' : 'background: rgba(255,255,255,0.05); box-shadow: none;' }}">
-                                    {{ $user->role->icon() }} {{ $user->name }}
-                                </button>
-                            @endif
-                        @endforeach
-                    </div>
+                    <label for="select-filho" style="font-size: 0.85rem; color: var(--text-secondary); display: block; margin-bottom: 8px;">Registrar em nome de:</label>
+                    @php
+                        $hasChildren = false;
+                        foreach($users as $user) {
+                            if (in_array($user->role->value, ['S', 'D'])) {
+                                $hasChildren = true;
+                                break;
+                            }
+                        }
+                    @endphp
+                    <select id="select-filho" 
+                            wire:change="selectUser($event.target.value)" 
+                            style="width: 100%; background: rgba(15, 23, 42, 0.6); border: 1px solid var(--card-border); color: #f8fafc; padding: 10px 12px; border-radius: 12px; font-size: 0.9rem; outline: none; cursor: pointer; transition: border-color 0.2s; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);"
+                            {{ !$hasChildren ? 'disabled' : '' }}>
+                        @if(!$hasChildren)
+                            <option value="" selected>Nenhum filho cadastrado(a)</option>
+                        @else
+                            @foreach($users as $user)
+                                @if(in_array($user->role->value, ['S', 'D']))
+                                    <option value="{{ $user->id }}" {{ $selectedUserId === $user->id ? 'selected' : '' }}>
+                                        {{ $user->role->icon() }} {{ $user->name }}
+                                    </option>
+                                @endif
+                            @endforeach
+                        @endif
+                    </select>
                 </div>
             @endif
         @else
@@ -402,6 +423,23 @@ $logout = function () {
                     </div>
                 </div>
             @endforeach
+        </div>
+    @endif
+
+    <!-- Painel dos Pais (Notificar e Convidar) -->
+    @if(auth()->check() && in_array(auth()->user()->role->value, ['P', 'M']) && $showNewMissionSection)
+        <div style="padding: 0 15px; margin-bottom: 15px;">
+            <div class="glass-card" style="margin: 0;">
+                <h3 style="font-size: 1.1rem; margin-bottom: 12px; color: #c084fc;">Painel dos Pais (Notificar)</h3>
+                <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 12px;">
+                    Adicione uma nova tarefa rápida para notificar imediatamente as crianças com aviso em texto e sinal sonoro!
+                </p>
+                <form wire:submit.prevent="addQuickTask" style="display: flex; flex-direction: column; gap: 10px;">
+                    <input type="text" wire:model="newTaskDesc" placeholder="Ex: Escovar os dentes" style="background: rgba(0,0,0,0.2); border: 1px solid var(--card-border); border-radius: 8px; padding: 10px; color: #fff; font-family: inherit;" required>
+                    <input type="number" wire:model="newTaskCoins" placeholder="Quantas moedas vale? Ex: 10" style="background: rgba(0,0,0,0.2); border: 1px solid var(--card-border); border-radius: 8px; padding: 10px; color: #fff; font-family: inherit;" required>
+                    <button type="submit" class="btn-primary" style="background: #a855f7;">Adicionar e Chamar Atenção 🔔</button>
+                </form>
+            </div>
         </div>
     @endif
 
@@ -464,18 +502,4 @@ $logout = function () {
         </div>
     @endif
 
-    <!-- Painel dos Pais (Notificar e Convidar) -->
-    @if(auth()->check() && in_array(auth()->user()->role->value, ['P', 'M']) && $showNewMissionSection)
-        <div class="glass-card">
-            <h3 style="font-size: 1.1rem; margin-bottom: 12px; color: #c084fc;">Painel dos Pais (Notificar)</h3>
-            <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 12px;">
-                Adicione uma nova tarefa rápida para notificar imediatamente as crianças com aviso em texto e sinal sonoro!
-            </p>
-            <form wire:submit.prevent="addQuickTask" style="display: flex; flex-direction: column; gap: 10px;">
-                <input type="text" wire:model="newTaskDesc" placeholder="Ex: Escovar os dentes" style="background: rgba(0,0,0,0.2); border: 1px solid var(--card-border); border-radius: 8px; padding: 10px; color: #fff; font-family: inherit;" required>
-                <input type="number" wire:model="newTaskCoins" placeholder="Quantas moedas vale? Ex: 10" style="background: rgba(0,0,0,0.2); border: 1px solid var(--card-border); border-radius: 8px; padding: 10px; color: #fff; font-family: inherit;" required>
-                <button type="submit" class="btn-primary" style="background: #a855f7;">Adicionar e Chamar Atenção 🔔</button>
-            </form>
-        </div>
-    @endif
 </div>
