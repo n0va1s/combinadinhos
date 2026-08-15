@@ -3,10 +3,11 @@
 use App\Models\User;
 use App\Models\Mission;
 use App\Models\Transaction;
-use App\Models\FamilyInvitation;
 use App\Models\Reward;
 use Illuminate\Support\Facades\Auth;
-use function Livewire\Volt\{state, mount};
+use function Livewire\Volt\{state, mount, layout};
+
+layout('layouts.app');
 
 state([
     'users' => [],
@@ -15,10 +16,7 @@ state([
     'missions' => [],
     'soundChecked' => false,
     'lastMissionsHash' => '',
-    'invitationLink' => null,
-    'selectedInviteRole' => 'S',
     'pendingTransactions' => [],
-    'showInviteSection' => false,
     'showNewMissionSection' => false,
     'newTaskDesc' => '',
     'newTaskCoins' => '',
@@ -35,16 +33,7 @@ mount(function () {
         $this->selectedUser = $user;
         $this->selectedUserId = $user->id;
 
-        // Se for pai/mãe, tenta auto-selecionar o primeiro filho da família
-        if (in_array($user->role->value, ['P', 'M']) && $user->family_id) {
-            $firstChild = User::where('family_id', $user->family_id)
-                ->whereIn('role', ['S', 'D'])
-                ->first();
-            if ($firstChild) {
-                $this->selectedUser = $firstChild;
-                $this->selectedUserId = $firstChild->id;
-            }
-        }
+        $this->selectedUserId = $user->id;
     }
     $this->loadUsers();
     $this->loadMissions();
@@ -236,20 +225,6 @@ $deleteReward = function ($rewardId) {
     }
 };
 
-$generateInvite = function () {
-    if (!$this->selectedUser || !$this->selectedUser->family_id) return;
-
-    $code = (string) \Illuminate\Support\Str::uuid();
-
-    FamilyInvitation::create([
-        'family_id' => $this->selectedUser->family_id,
-        'role' => $this->selectedInviteRole,
-        'code' => $code,
-    ]);
-
-    $this->invitationLink = url("/invite/{$code}?role=" . $this->selectedInviteRole);
-};
-
 $markAsDone = function ($missionId) {
     if (!$this->selectedUser) {
         return;
@@ -261,6 +236,15 @@ $markAsDone = function ($missionId) {
     $loggedInUser = auth()->user();
     $isParent = $loggedInUser && in_array($loggedInUser->role->value, ['P', 'M']);
     $isNegative = $mission->coins < 0;
+
+    if ($isParent && $this->selectedUser->id === $loggedInUser->id) {
+        \Flux::toast(
+            heading: 'Atenção ⚠️',
+            text: 'Selecione um filho no painel acima para registrar a tarefa.',
+            variant: 'warning'
+        );
+        return;
+    }
 
     if ($isParent) {
         // Pais aprovam direto.
@@ -399,13 +383,6 @@ $logout = function () {
                 </h3>
                 @if(auth()->check() && in_array(auth()->user()->role->value, ['P', 'M']))
                     <div style="display: flex; gap: 8px;">
-                        <button wire:click="$toggle('showInviteSection')" 
-                                title="{{ $showInviteSection ? 'Ocultar Convite' : 'Gerar Convite' }}"
-                                style="background: {{ $showInviteSection ? 'rgba(99, 102, 241, 0.2)' : 'rgba(255,255,255,0.05)' }}; border: 1px solid {{ $showInviteSection ? 'var(--accent)' : 'var(--card-border)' }}; border-radius: 8px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s;">
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="{{ $showInviteSection ? 'var(--accent)' : '#fff' }}" style="width: 16px; height: 16px;">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M18 7.5v3m0 0v3m0-3h3m-3 0h-3m-2.25-4.125a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0ZM3 19.235v-.11a6 6 0 0 1 6-6h1.5a6 6 0 0 1 6 6v.11m-.001 0H3" />
-                            </svg>
-                        </button>
                         <button wire:click="$toggle('showNewMissionSection')" 
                                 title="{{ $showNewMissionSection ? 'Ocultar Cadastro' : 'Cadastrar Missão' }}"
                                 style="background: {{ $showNewMissionSection ? 'rgba(168, 85, 247, 0.2)' : 'rgba(255,255,255,0.05)' }}; border: 1px solid {{ $showNewMissionSection ? '#a855f7' : 'var(--card-border)' }}; border-radius: 8px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s;">
@@ -418,50 +395,13 @@ $logout = function () {
             </div>
             
             <p style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 8px;">
-                Seu perfil é de <strong>{{ $selectedUser->role->label() }}</strong>
+                Seu perfil é de <strong>{{ auth()->user()->role->label() }}</strong>
             </p>
             <p style="font-size: 0.85rem; color: #818cf8; font-weight: 600;">
                 Marque as missões realizadas hoje (positivas ou negativas)
             </p>
             
-            @if(auth()->check() && in_array(auth()->user()->role->value, ['P', 'M']) && $showInviteSection)
-                <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid var(--card-border); display: flex; align-items: center; justify-content: space-between; gap: 10px;">
-                    <div style="display: flex; align-items: center; gap: 8px;">
-                        <span style="font-size: 0.85rem; color: var(--text-secondary);">Convidar:</span>
-                        <select wire:model="selectedInviteRole" style="background: rgba(0, 0, 0, 0.3); border: 1px solid var(--card-border); border-radius: 8px; padding: 6px 12px; color: #fff; font-size: 0.85rem; font-family: inherit; outline: none; cursor: pointer;">
-                            <option value="S" style="color: #000;">Filho</option>
-                            <option value="D" style="color: #000;">Filha</option>
-                            <option value="P" style="color: #000;">Pai</option>
-                            <option value="M" style="color: #000;">Mãe</option>
-                        </select>
-                    </div>
-                    <button wire:click="generateInvite" class="btn-primary" style="background: var(--accent); padding: 8px 16px; font-size: 0.85rem; border-radius: 8px; display: flex; align-items: center; gap: 6px; box-shadow: none;">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" style="width: 16px; height: 16px;">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M7.217 10.907a2.25 2.25 0 1 0 0 2.186m0-2.186c.18.324.283.696.283 1.093s-.103.77-.283 1.093m0-2.186 9.566-5.314m-9.566 7.5 9.566 5.314m0 0a2.25 2.25 0 1 0 3.935 2.186 2.25 2.25 0 0 0-3.935-2.186Zm0-12.814a2.25 2.25 0 1 0 3.933-2.185 2.25 2.25 0 0 0-3.933 2.185Z" />
-                        </svg>
-                        Gerar Convite
-                    </button>
-                </div>
-            @endif
 
-            @if(auth()->check() && in_array(auth()->user()->role->value, ['P', 'M']) && $showInviteSection && $invitationLink)
-                <div style="margin-top: 12px; background: rgba(99, 102, 241, 0.15); padding: 12px; border-radius: 12px; font-size: 0.85rem; border: 1px dashed var(--accent);">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-                        @php
-                            $selectedRoleLabel = match($selectedInviteRole) {
-                                'P' => 'Pai',
-                                'M' => 'Mãe',
-                                'S' => 'Filho',
-                                'D' => 'Filha',
-                                default => $selectedInviteRole
-                            };
-                        @endphp
-                        <strong>Convide o {{ $selectedRoleLabel }}:</strong>
-                        <button onclick="document.getElementById('headerInviteLink').select(); document.execCommand('copy'); alert('Link copiado!');" style="background: var(--accent); border: none; color: #fff; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; cursor: pointer;">Copiar</button>
-                    </div>
-                    <input type="text" id="headerInviteLink" readonly value="{{ $invitationLink }}" style="width: 100%; background: transparent; border: none; color: #818cf8; font-family: monospace; outline: none;">
-                </div>
-            @endif
 
             @if(auth()->check() && in_array(auth()->user()->role->value, ['P', 'M']))
                 <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid var(--card-border);">
@@ -482,9 +422,10 @@ $logout = function () {
                         @if(!$hasChildren)
                             <option value="" selected>Nenhum filho cadastrado(a)</option>
                         @else
+                            <option value="{{ auth()->user()->id }}" {{ $selectedUserId == auth()->user()->id ? 'selected' : '' }}>Selecione um filho...</option>
                             @foreach($users as $user)
                                 @if(in_array($user->role->value, ['S', 'D']))
-                                    <option value="{{ $user->id }}" {{ $selectedUserId === $user->id ? 'selected' : '' }}>
+                                    <option value="{{ $user->id }}" {{ $selectedUserId == $user->id ? 'selected' : '' }}>
                                         {{ $user->role->icon() }} {{ $user->name }}
                                     </option>
                                 @endif

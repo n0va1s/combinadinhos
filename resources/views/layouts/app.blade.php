@@ -205,7 +205,7 @@
             <source src="/sounds/suspense.mp3" type="audio/mpeg">
         </audio>
 
-        @yield('content')
+        {{ $slot }}
     </div>
     
     <flux:toast />

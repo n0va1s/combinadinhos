@@ -11,6 +11,7 @@ use function Livewire\Volt\layout;
 use function Livewire\Volt\rules;
 use function Livewire\Volt\state;
 use function Livewire\Volt\mount;
+use function Livewire\Volt\updated;
 
 layout('layouts.guest');
 
@@ -28,6 +29,12 @@ state([
 mount(function () {
     $this->families = Family::all();
 });
+
+updated(['family_id' => function ($value) {
+    if (!empty($value)) {
+        $this->family_name = '';
+    }
+}]);
 
 rules([
     'name' => ['required', 'string', 'max:255'],
@@ -100,7 +107,7 @@ $register = function () {
         <!-- Vincular a uma Família Existente -->
         <div class="mt-4">
             <x-input-label for="family_id" :value="__('Escolha uma Família Existente')" />
-            <select wire:model="family_id" id="family_id" class="block mt-1 w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm">
+            <select wire:model.live="family_id" id="family_id" class="block mt-1 w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm">
                 <option value="">-- Nenhuma / Criar Nova --</option>
                 @foreach($families as $f)
                     <option value="{{ $f->id }}">{{ $f->name }}</option>
@@ -110,11 +117,13 @@ $register = function () {
         </div>
 
         <!-- Criar Nova Família -->
-        <div class="mt-4">
-            <x-input-label for="family_name" :value="__('Ou digite o nome para Criar Nova Família')" />
-            <x-text-input wire:model="family_name" id="family_name" class="block mt-1 w-full" type="text" placeholder="Ex: Família Silva" />
-            <x-input-error :messages="$errors->get('family_name')" class="mt-2" />
-        </div>
+        @if(empty($family_id))
+            <div class="mt-4">
+                <x-input-label for="family_name" :value="__('Ou digite o nome para Criar Nova Família')" />
+                <x-text-input wire:model="family_name" id="family_name" class="block mt-1 w-full" type="text" placeholder="Ex: Família Silva" />
+                <x-input-error :messages="$errors->get('family_name')" class="mt-2" />
+            </div>
+        @endif
 
         <!-- Password -->
         <div class="mt-4">
