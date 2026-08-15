@@ -17,6 +17,10 @@ state([
     'invitationLink' => null,
     'selectedInviteRole' => 'S',
     'pendingTransactions' => [],
+    'showInviteSection' => false,
+    'showNewMissionSection' => false,
+    'newTaskDesc' => '',
+    'newTaskCoins' => '',
 ]);
 
 mount(function () {
@@ -100,15 +104,19 @@ $selectUser = function ($id) {
     $this->loadMissions();
 };
 
-$addQuickTask = function ($description, $coins) {
+$addQuickTask = function () {
     if (!$this->selectedUser || !$this->selectedUser->family_id) return;
+    if (!$this->newTaskDesc || !$this->newTaskCoins) return;
 
     Mission::create([
-        'description' => $description,
-        'coins' => (int) $coins,
+        'description' => $this->newTaskDesc,
+        'coins' => (int) $this->newTaskCoins,
         'day' => 'Hoje',
         'family_id' => $this->selectedUser->family_id
     ]);
+    
+    $this->newTaskDesc = '';
+    $this->newTaskCoins = '';
     $this->loadMissions();
 };
 
@@ -265,7 +273,34 @@ $logout = function () {
     <!-- Bloco de Perfil / Login -->
     <div class="glass-card" style="margin-top: 5px;">
         @if($selectedUser)
-            <h3 style="font-size: 1.2rem; margin-bottom: 4px; font-weight: 700;">Olá, {{ $selectedUser->name }}!</h3>
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;">
+                <h3 style="font-size: 1.2rem; font-weight: 700; margin: 0;">
+                    @if(auth()->check() && auth()->user()->id !== $selectedUser->id)
+                        Registrando para {{ $selectedUser->name }} 👦
+                    @else
+                        Olá, {{ $selectedUser->name }}!
+                    @endif
+                </h3>
+                @if(auth()->check() && in_array(auth()->user()->role->value, ['P', 'M']))
+                    <div style="display: flex; gap: 8px;">
+                        <button wire:click="$toggle('showInviteSection')" 
+                                title="{{ $showInviteSection ? 'Ocultar Convite' : 'Gerar Convite' }}"
+                                style="background: {{ $showInviteSection ? 'rgba(99, 102, 241, 0.2)' : 'rgba(255,255,255,0.05)' }}; border: 1px solid {{ $showInviteSection ? 'var(--accent)' : 'var(--card-border)' }}; border-radius: 8px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s;">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="{{ $showInviteSection ? 'var(--accent)' : '#fff' }}" style="width: 16px; height: 16px;">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M18 7.5v3m0 0v3m0-3h3m-3 0h-3m-2.25-4.125a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0ZM3 19.235v-.11a6 6 0 0 1 6-6h1.5a6 6 0 0 1 6 6v.11m-.001 0H3" />
+                            </svg>
+                        </button>
+                        <button wire:click="$toggle('showNewMissionSection')" 
+                                title="{{ $showNewMissionSection ? 'Ocultar Cadastro' : 'Cadastrar Missão' }}"
+                                style="background: {{ $showNewMissionSection ? 'rgba(168, 85, 247, 0.2)' : 'rgba(255,255,255,0.05)' }}; border: 1px solid {{ $showNewMissionSection ? '#a855f7' : 'var(--card-border)' }}; border-radius: 8px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s;">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="{{ $showNewMissionSection ? '#c084fc' : '#fff' }}" style="width: 16px; height: 16px;">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                            </svg>
+                        </button>
+                    </div>
+                @endif
+            </div>
+            
             <p style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 8px;">
                 Seu perfil é de <strong>{{ $selectedUser->role->label() }}</strong>
             </p>
@@ -273,7 +308,7 @@ $logout = function () {
                 Marque as missões realizadas hoje (positivas ou negativas)
             </p>
             
-            @if(in_array($selectedUser->role->value, ['P', 'M']))
+            @if(auth()->check() && in_array(auth()->user()->role->value, ['P', 'M']) && $showInviteSection)
                 <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid var(--card-border); display: flex; align-items: center; justify-content: space-between; gap: 10px;">
                     <div style="display: flex; align-items: center; gap: 8px;">
                         <span style="font-size: 0.85rem; color: var(--text-secondary);">Convidar:</span>
@@ -293,7 +328,7 @@ $logout = function () {
                 </div>
             @endif
 
-            @if($invitationLink)
+            @if(auth()->check() && in_array(auth()->user()->role->value, ['P', 'M']) && $showInviteSection && $invitationLink)
                 <div style="margin-top: 12px; background: rgba(99, 102, 241, 0.15); padding: 12px; border-radius: 12px; font-size: 0.85rem; border: 1px dashed var(--accent);">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
                         @php
@@ -309,6 +344,28 @@ $logout = function () {
                         <button onclick="document.getElementById('headerInviteLink').select(); document.execCommand('copy'); alert('Link copiado!');" style="background: var(--accent); border: none; color: #fff; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; cursor: pointer;">Copiar</button>
                     </div>
                     <input type="text" id="headerInviteLink" readonly value="{{ $invitationLink }}" style="width: 100%; background: transparent; border: none; color: #818cf8; font-family: monospace; outline: none;">
+                </div>
+            @endif
+
+            @if(auth()->check() && in_array(auth()->user()->role->value, ['P', 'M']))
+                <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid var(--card-border);">
+                    <span style="font-size: 0.85rem; color: var(--text-secondary); display: block; margin-bottom: 8px;">Registrar em nome de:</span>
+                    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                        <button wire:click="selectUser('{{ auth()->user()->id }}')" 
+                                class="btn-primary" 
+                                style="padding: 6px 12px; font-size: 0.8rem; border-radius: 8px; {{ $selectedUserId === auth()->user()->id ? 'background: var(--accent);' : 'background: rgba(255,255,255,0.05); box-shadow: none;' }}">
+                            Meu Perfil ({{ auth()->user()->name }})
+                        </button>
+                        @foreach($users as $user)
+                            @if(in_array($user->role->value, ['S', 'D']))
+                                <button wire:click="selectUser('{{ $user->id }}')" 
+                                        class="btn-primary" 
+                                        style="padding: 6px 12px; font-size: 0.8rem; border-radius: 8px; {{ $selectedUserId === $user->id ? 'background: var(--accent);' : 'background: rgba(255,255,255,0.05); box-shadow: none;' }}">
+                                    {{ $user->role->icon() }} {{ $user->name }}
+                                </button>
+                            @endif
+                        @endforeach
+                    </div>
                 </div>
             @endif
         @else
@@ -408,31 +465,17 @@ $logout = function () {
     @endif
 
     <!-- Painel dos Pais (Notificar e Convidar) -->
-    @if($selectedUser && in_array($selectedUser->role->value, ['P', 'M']))
+    @if(auth()->check() && in_array(auth()->user()->role->value, ['P', 'M']) && $showNewMissionSection)
         <div class="glass-card">
             <h3 style="font-size: 1.1rem; margin-bottom: 12px; color: #c084fc;">Painel dos Pais (Notificar)</h3>
             <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 12px;">
                 Adicione uma nova tarefa rápida para notificar imediatamente as crianças com aviso em texto e sinal sonoro!
             </p>
-            <form wire:submit.prevent style="display: flex; flex-direction: column; gap: 10px;">
-                <input type="text" id="newTaskDesc" placeholder="Ex: Escovar os dentes" style="background: rgba(0,0,0,0.2); border: 1px solid var(--card-border); border-radius: 8px; padding: 10px; color: #fff; font-family: inherit;" required>
-                <input type="number" id="newTaskCoins" placeholder="Quantas moedas vale? Ex: 10" style="background: rgba(0,0,0,0.2); border: 1px solid var(--card-border); border-radius: 8px; padding: 10px; color: #fff; font-family: inherit;" required>
+            <form wire:submit.prevent="addQuickTask" style="display: flex; flex-direction: column; gap: 10px;">
+                <input type="text" wire:model="newTaskDesc" placeholder="Ex: Escovar os dentes" style="background: rgba(0,0,0,0.2); border: 1px solid var(--card-border); border-radius: 8px; padding: 10px; color: #fff; font-family: inherit;" required>
+                <input type="number" wire:model="newTaskCoins" placeholder="Quantas moedas vale? Ex: 10" style="background: rgba(0,0,0,0.2); border: 1px solid var(--card-border); border-radius: 8px; padding: 10px; color: #fff; font-family: inherit;" required>
                 <button type="submit" class="btn-primary" style="background: #a855f7;">Adicionar e Chamar Atenção 🔔</button>
             </form>
         </div>
-
-        <script>
-            document.addEventListener('DOMContentLoaded', () => {
-                window.addEventListener('submit', (e) => {
-                    const descInput = document.getElementById('newTaskDesc');
-                    const coinsInput = document.getElementById('newTaskCoins');
-                    if (descInput && coinsInput && e.target.contains(descInput)) {
-                        @this.call('addQuickTask', descInput.value, coinsInput.value);
-                        descInput.value = '';
-                        coinsInput.value = '';
-                    }
-                });
-            });
-        </script>
     @endif
 </div>
