@@ -12,7 +12,7 @@ return new class extends Migration
             $table->uuid('id')->primary();
             $table->string('name');
             $table->string('telegram_id')->unique()->nullable();
-            $table->string('role')->default('F'); // PAI (P), MAE (M), FILHO (F)
+            $table->string('role')->default('S'); // PAI (P), MAE (M), FILHO (S), FILHA (D)
             $table->integer('balance')->default(0);
             
             $table->string('email')->unique()->nullable();

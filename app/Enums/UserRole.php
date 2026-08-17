@@ -8,7 +8,7 @@ enum UserRole: string
     case MAE = 'M';
     case FILHO = 'S';
     case FILHA = 'D';
-
+    
     public function label(): string
     {
         return match($this) {

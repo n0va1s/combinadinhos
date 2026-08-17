@@ -17,6 +17,30 @@ class DatabaseSeeder extends Seeder
             'name' => 'Família Silva'
         ]);
 
+        $filho = \App\Models\User::create([
+            'name' => 'Filha',
+            'email' => 'filha@email.com',
+            'role' => \App\Enums\UserRole::FILHA,
+            'password' => Hash::make('localhost@1'),
+            'family_id' => $family->id,
+        ]);
+
+        $pai = \App\Models\User::create([
+            'name' => 'Pai',
+            'email' => 'pai@email.com',
+            'role' => \App\Enums\UserRole::PAI,
+            'password' => Hash::make('localhost@1'),
+            'family_id' => $family->id,
+        ]);
+
+        $mae = \App\Models\User::create([
+            'name' => 'Mãe',
+            'email' => 'mae@email.com',
+            'role' => \App\Enums\UserRole::MAE,
+            'password' => Hash::make('localhost@1'),
+            'family_id' => $family->id,
+        ]);
+
         // (Os usuários padrão foram removidos conforme solicitado, permitindo o registro manual)
 
         $this->call([

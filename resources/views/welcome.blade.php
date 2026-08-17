@@ -147,8 +147,8 @@
         <p>Cadastre sua Família e comece a transformação de quem você ama!</p>
 
         @auth
-            <a href="/dashboard" class="cta-btn">Ver Missões do Dia 🎯</a>
-            <a href="/register" class="sec-btn">Cadastrar outro membro da Família 🏠</a>
+            <a href="/dashboard" class="cta-btn">Missões do Dia 🎯</a>
+            <a href="/register" class="sec-btn">Cadastrar os Demais 🏠</a>
         @else
             <a href="/register" class="cta-btn">Começar Agora Grátis 🚀</a>
             <a href="/login" class="sec-btn">Já tenho conta / Acessar 🔑</a>
@@ -158,29 +158,29 @@
             <div class="feature-item">
                 <span class="feature-icon">🎯</span>
                 <div class="feature-text">
-                    <strong>Missões Rápidas e Hábitos</strong>
-                    <span>Defina tarefas diárias ou crie novas missões com aviso imediato.</span>
+                    <strong>Desenvolva melhores comportamentos</strong>
+                    <span>Não consegue acordar no horário? Não ajuda em casa? Crie missões e transforme em algo mais divertido</span>
                 </div>
             </div>
             <div class="feature-item">
                 <span class="feature-icon">🎁</span>
                 <div class="feature-text">
-                    <strong>Loja de Recompensas</strong>
-                    <span>As crianças trocam moedas por prêmios e os pais aprovam tudo pelo app!</span>
+                    <strong>Recompense o esforço</strong>
+                    <span>Defina recompensas e aprove tudo pelo app!</span>
                 </div>
             </div>
             <div class="feature-item">
                 <span class="feature-icon">👨‍👩‍👧‍👦</span>
                 <div class="feature-text">
-                    <strong>Convidar Familiares</strong>
-                    <span>Gere links de convite rápido para adicionar outros pais ou filhos.</span>
+                    <strong>Reforce o diálogo</strong>
+                    <span>Aproveite esse momento para conversarem sobre as recompensas e os esforços.</span>
                 </div>
             </div>
             <div class="feature-item">
-                <span class="feature-icon">🔔</span>
+                <span class="feature-icon">🌱</span>
                 <div class="feature-text">
-                    <strong>Avisos com Som</strong>
-                    <span>Notificações sonoras reais no celular quando as tarefas atualizarem.</span>
+                    <strong>Crie novos hábitos</strong>
+                    <span>Faça desse jogo uma fonte de bons hábitos</span>
                 </div>
             </div>
         </div>
