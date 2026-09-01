@@ -10,8 +10,10 @@ class MissionSeeder extends Seeder
 {
     public function run(): void
     {
-        // Seleciona um usuário aleatório da família para associar as missões
-        $userId = User::inRandomOrder()->first()->id;
+        $filhos = User::whereIn('role', [\App\Enums\UserRole::FILHO, \App\Enums\UserRole::FILHA])->get();
+        if ($filhos->isEmpty()) {
+            $filhos = User::all();
+        }
 
         $missions = [
             [
@@ -81,9 +83,12 @@ class MissionSeeder extends Seeder
             ]
         ];
 
-        foreach ($missions as $mission) {
-            $mission['user_id'] = $userId;
-            Mission::create($mission);
+        foreach ($filhos as $filho) {
+            foreach ($missions as $mission) {
+                $dadosMissao = $mission;
+                $dadosMissao['user_id'] = $filho->id;
+                Mission::create($dadosMissao);
+            }
         }
     }
 }

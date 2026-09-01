@@ -4,6 +4,7 @@ use App\Models\User;
 use App\Models\Mission;
 use App\Models\Transaction;
 use App\Models\Reward;
+use App\Enums\TransactionStatus;
 use Illuminate\Support\Facades\Auth;
 use function Livewire\Volt\{state, mount, layout};
 
@@ -32,11 +33,9 @@ mount(function () {
         $usuario = auth()->user();
         $this->usuarioSelecionado = $usuario;
         $this->idUsuarioSelecionado = $usuario->id;
-
-        $this->idUsuarioSelecionado = $usuario->id;
     }
     $this->carregarUsuarios();
-    $this->carregarMissoes();
+    $this->carregarMissoes(silencioso: true);
     $this->carregarTransacoesPendentes();
     $this->carregarRecompensas();
 });
@@ -58,7 +57,7 @@ $carregarTransacoesPendentes = function () {
     if (auth()->check() && in_array(auth()->user()->role->value, ['P', 'M'])) {
         $idsUsuariosFamilia = User::where('family_id', auth()->user()->family_id)->pluck('id');
         $this->transacoesPendentes = Transaction::whereIn('user_id', $idsUsuariosFamilia)
-            ->where('status', 'pending')
+            ->where('status', TransactionStatus::PENDENTE)
             ->orderBy('created_at', 'desc')
             ->get();
     } else {
@@ -66,7 +65,7 @@ $carregarTransacoesPendentes = function () {
     }
 };
 
-$carregarMissoes = function () {
+$carregarMissoes = function (bool $silencioso = false) {
     // Array para tradução do dia atual do Carbon/PHP para português
     $diasTraduzidos = [
         'Sunday' => 'Domingo',
@@ -81,8 +80,8 @@ $carregarMissoes = function () {
 
     $consulta = Mission::query();
 
-    if ($this->usuarioSelecionado && $this->usuarioSelecionado->family_id) {
-        $consulta->where('family_id', $this->usuarioSelecionado->family_id);
+    if ($this->usuarioSelecionado) {
+        $consulta->where('user_id', $this->usuarioSelecionado->id);
     }
 
     $this->missoes = $consulta->where(function ($q) use ($diaAtualPt) {
@@ -94,7 +93,7 @@ $carregarMissoes = function () {
     
     $novoHash = md5(json_encode($this->missoes->pluck('id', 'updated_at')->toArray()));
     
-    if ($this->hashUltimasMissoes && $this->hashUltimasMissoes !== $novoHash) {
+    if (!$silencioso && $this->hashUltimasMissoes && $this->hashUltimasMissoes !== $novoHash) {
         $listaDescricoes = $this->missoes->pluck('description')->implode(', ');
         \Flux::toast(
             heading: 'Tarefas Atualizadas! 📝',
@@ -109,19 +108,19 @@ $selecionarUsuario = function ($id) {
     $this->idUsuarioSelecionado = $id;
     $this->usuarioSelecionado = User::find($id);
     $this->carregarUsuarios();
-    $this->carregarMissoes();
+    $this->carregarMissoes(silencioso: true);
     $this->carregarRecompensas();
 };
 
 $adicionarTarefaRapida = function () {
-    if (!$this->usuarioSelecionado || !$this->usuarioSelecionado->family_id) return;
+    if (!$this->usuarioSelecionado) return;
     if (!$this->descricaoNovaTarefa || !$this->moedasNovaTarefa) return;
 
     Mission::create([
         'description' => $this->descricaoNovaTarefa,
         'coins' => (int) $this->moedasNovaTarefa,
         'day' => $this->diaNovaTarefa ?: null,
-        'family_id' => $this->usuarioSelecionado->family_id
+        'user_id' => $this->usuarioSelecionado->id,
     ]);
     
     $this->descricaoNovaTarefa = '';
@@ -131,21 +130,21 @@ $adicionarTarefaRapida = function () {
 };
 
 $carregarRecompensas = function () {
-    if ($this->usuarioSelecionado && $this->usuarioSelecionado->family_id) {
-        $this->recompensas = Reward::where('family_id', $this->usuarioSelecionado->family_id)->orderBy('cost', 'asc')->get();
+    if ($this->usuarioSelecionado) {
+        $this->recompensas = Reward::where('user_id', $this->usuarioSelecionado->id)->orderBy('cost', 'asc')->get();
     } else {
         $this->recompensas = [];
     }
 };
 
 $adicionarRecompensa = function () {
-    if (!$this->usuarioSelecionado || !$this->usuarioSelecionado->family_id) return;
+    if (!$this->usuarioSelecionado) return;
     if (!$this->descricaoNovaRecompensa || !$this->custoNovaRecompensa) return;
 
     Reward::create([
         'description' => $this->descricaoNovaRecompensa,
         'cost' => (int) $this->custoNovaRecompensa,
-        'family_id' => $this->usuarioSelecionado->family_id
+        'user_id' => $this->usuarioSelecionado->id,
     ]);
     
     $this->descricaoNovaRecompensa = '';
@@ -177,7 +176,7 @@ $resgatarRecompensa = function ($idRecompensa) {
             'user_name' => $this->usuarioSelecionado->name,
             'detail' => 'Resgatou recompensa: ' . $recompensa->description,
             'amount' => -$recompensa->cost,
-            'status' => 'approved',
+            'status' => TransactionStatus::APROVADO,
             'user_id' => $this->usuarioSelecionado->id,
         ]);
 
@@ -205,7 +204,7 @@ $resgatarRecompensa = function ($idRecompensa) {
             'user_name' => $this->usuarioSelecionado->name,
             'detail' => 'Aguardando Aprovação (Resgate): ' . $recompensa->description,
             'amount' => -$recompensa->cost,
-            'status' => 'pending',
+            'status' => TransactionStatus::PENDENTE,
             'user_id' => $this->usuarioSelecionado->id,
         ]);
 
@@ -256,7 +255,7 @@ $marcarComoConcluido = function ($idMissao) {
             'user_name' => $this->usuarioSelecionado->name,
             'detail' => 'Realizou: ' . $missao->description,
             'amount' => $missao->coins,
-            'status' => 'approved',
+            'status' => TransactionStatus::APROVADO,
             'user_id' => $this->usuarioSelecionado->id,
         ]);
 
@@ -283,7 +282,7 @@ $marcarComoConcluido = function ($idMissao) {
             'user_name' => $this->usuarioSelecionado->name,
             'detail' => 'Aguardando Aprovação: ' . $missao->description,
             'amount' => $missao->coins,
-            'status' => 'pending',
+            'status' => TransactionStatus::PENDENTE,
             'user_id' => $this->usuarioSelecionado->id,
         ]);
 
@@ -297,8 +296,8 @@ $marcarComoConcluido = function ($idMissao) {
 
 $aprovarTransacao = function ($idTransacao) {
     $transacao = Transaction::find($idTransacao);
-    if ($transacao && $transacao->status === 'pending') {
-        $transacao->status = 'approved';
+    if ($transacao && $transacao->status === TransactionStatus::PENDENTE) {
+        $transacao->status = TransactionStatus::APROVADO;
         $ehRecompensa = $transacao->action === 'Resgate';
         
         if ($ehRecompensa) {
@@ -349,8 +348,8 @@ $aprovarTransacao = function ($idTransacao) {
 
 $recusarTransacao = function ($idTransacao) {
     $transacao = Transaction::find($idTransacao);
-    if ($transacao && $transacao->status === 'pending') {
-        $transacao->status = 'rejected';
+    if ($transacao && $transacao->status === TransactionStatus::PENDENTE) {
+        $transacao->status = TransactionStatus::REJEITADO;
         $transacao->save();
         $this->carregarTransacoesPendentes();
         

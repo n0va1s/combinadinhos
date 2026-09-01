@@ -3,6 +3,7 @@
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
+use App\Enums\TransactionStatus;
 
 return new class extends Migration
 {
@@ -15,7 +16,7 @@ return new class extends Migration
             $table->string('user_name');
             $table->string('detail');
             $table->integer('amount');
-            $table->string('status')->default(TransactionStatus::APROVADO);
+            $table->string('status')->default(TransactionStatus::APROVADO->value);
             $table->timestamps();
         });
     }

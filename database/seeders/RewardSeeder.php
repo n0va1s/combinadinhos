@@ -10,7 +10,11 @@ class RewardSeeder extends Seeder
 {
     public function run(): void
     {
-        $userId = User::inRandomOrder()->first()->id;
+        $filhos = User::whereIn('role', [\App\Enums\UserRole::FILHO, \App\Enums\UserRole::FILHA])->get();
+        if ($filhos->isEmpty()) {
+            $filhos = User::all();
+        }
+
         $rewards = [
             [
                 "description" => "50 reais",
@@ -38,9 +42,12 @@ class RewardSeeder extends Seeder
             ]
         ];
 
-        foreach ($rewards as $reward) {
-            $reward['user_id'] = $userId;
-            Reward::create($reward);
+        foreach ($filhos as $filho) {
+            foreach ($rewards as $reward) {
+                $dadosRecompensa = $reward;
+                $dadosRecompensa['user_id'] = $filho->id;
+                Reward::create($dadosRecompensa);
+            }
         }
     }
 }
