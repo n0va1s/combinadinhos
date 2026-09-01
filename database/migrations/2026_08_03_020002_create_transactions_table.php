@@ -15,7 +15,7 @@ return new class extends Migration
             $table->string('user_name');
             $table->string('detail');
             $table->integer('amount');
-            $table->string('status')->default('approved');
+            $table->string('status')->default(TransactionStatus::APROVADO);
             $table->timestamps();
         });
     }

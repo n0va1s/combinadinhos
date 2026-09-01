@@ -3,12 +3,14 @@
 namespace Database\Seeders;
 
 use App\Models\Reward;
+use App\Models\User;
 use Illuminate\Database\Seeder;
 
 class RewardSeeder extends Seeder
 {
     public function run(): void
     {
+        $userId = User::inRandomOrder()->first()->id;
         $rewards = [
             [
                 "description" => "50 reais",
@@ -37,6 +39,7 @@ class RewardSeeder extends Seeder
         ];
 
         foreach ($rewards as $reward) {
+            $reward['user_id'] = $userId;
             Reward::create($reward);
         }
     }

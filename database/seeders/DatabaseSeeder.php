@@ -49,7 +49,7 @@ class DatabaseSeeder extends Seeder
         ]);
 
         // Associa todas as missões e recompensas criadas anteriormente à família
-        \App\Models\Mission::whereNull('family_id')->update(['family_id' => $family->id]);
-        \App\Models\Reward::whereNull('family_id')->update(['family_id' => $family->id]);
+
+
     }
 }

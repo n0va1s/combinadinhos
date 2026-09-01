@@ -10,12 +10,16 @@ return new class extends Migration
     {
         Schema::create('missions', function (Blueprint $table) {
             $table->uuid('id')->primary();
+            $table->uuid('user_id')->nullable()->index();
             $table->string('description');
             $table->integer('coins');
             $table->string('day')->nullable();
-            $table->uuid('family_id')->nullable()->index();
+            $table->integer('streak_bonus')->nullable()->default(0);
+            $table->integer('streak_min_days')->default(3);
+            $table->integer('streak_current_days')->default(0);
             $table->softDeletes();
             $table->timestamps();
+            $table->foreign('user_id')->references('id')->on('users')->cascadeOnDelete();
         });
     }
 

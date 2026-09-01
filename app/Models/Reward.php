@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 
-#[Fillable(['family_id', 'description', 'cost'])]
+#[Fillable(['user_id', 'description', 'cost'])]
 class Reward extends Model
 {
     use HasUuids;
@@ -14,8 +14,8 @@ class Reward extends Model
     public $incrementing = false;
     protected $keyType = 'string';
 
-    public function family()
+    public function user()
     {
-        return $this->belongsTo(Family::class);
+        return $this->belongsTo(User::class);
     }
 }

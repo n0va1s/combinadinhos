@@ -3,12 +3,16 @@
 namespace Database\Seeders;
 
 use App\Models\Mission;
+use App\Models\User;
 use Illuminate\Database\Seeder;
 
 class MissionSeeder extends Seeder
 {
     public function run(): void
     {
+        // Seleciona um usuário aleatório da família para associar as missões
+        $userId = User::inRandomOrder()->first()->id;
+
         $missions = [
             [
                 "description" => "Varrer a casa depois do almoço",
@@ -78,6 +82,7 @@ class MissionSeeder extends Seeder
         ];
 
         foreach ($missions as $mission) {
+            $mission['user_id'] = $userId;
             Mission::create($mission);
         }
     }

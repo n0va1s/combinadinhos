@@ -10,10 +10,11 @@ return new class extends Migration
     {
         Schema::create('rewards', function (Blueprint $table) {
             $table->uuid('id')->primary();
+            $table->uuid('user_id')->nullable()->index();
             $table->string('description');
             $table->integer('cost');
-            $table->uuid('family_id')->nullable()->index();
             $table->timestamps();
+            $table->foreign('user_id')->references('id')->on('users')->cascadeOnDelete();
         });
     }
 

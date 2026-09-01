@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Concerns\HasUuids;
 
 use Illuminate\Database\Eloquent\SoftDeletes;
 
-#[Fillable(['family_id', 'description', 'coins', 'day'])]
+#[Fillable(['user_id', 'description', 'coins', 'day', 'streak_bonus', 'streak_min_days', 'streak_current_days'])]
 class Mission extends Model
 {
     use HasUuids, SoftDeletes;
@@ -16,8 +16,8 @@ class Mission extends Model
     public $incrementing = false;
     protected $keyType = 'string';
 
-    public function family()
+    public function user()
     {
-        return $this->belongsTo(Family::class);
+        return $this->belongsTo(User::class);
     }
 }
