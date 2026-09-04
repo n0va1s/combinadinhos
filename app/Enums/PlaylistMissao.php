@@ -38,13 +38,54 @@ enum PlaylistMissao: string
     public function descricao(): string
     {
         return match ($this) {
-            self::PEQUENOS_CONQUISTADORES => 'Incentivo à coordenação, primeiros hábitos de higiene e guardar brinquedos.',
-            self::EXPLORADORES_ROTINA => 'Consolidação de hábitos diários, tarefas escolares e organização do próprio quarto.',
-            self::MESTRES_AUTONOMIA => 'Desenvolvimento de disciplina pessoal, cooperação com a casa e incentivo à leitura.',
-            self::JOVENS_PROTAGONISTAS => 'Gestão do próprio tempo, responsabilidades maduras e educação financeira.',
-            self::MANHAS_SEM_ESTRESSE => 'Tudo o que a criança precisa para iniciar o dia com pontualidade e leveza.',
-            self::FIM_DE_SEMANA_FAMILIA => 'Tarefas de colaboração e organização coletiva para o sábado e domingo.',
+            self::PEQUENOS_CONQUISTADORES => 'Primeiros hábitos de autocuidado (ABVDs), organização motora e socialização básica (Portage / VB-MAPP).',
+            self::EXPLORADORES_ROTINA => 'Consolidação das ABVDs com autonomia, rotina escolar, regulação de telas e cooperação (Habilidades Sociais).',
+            self::MESTRES_AUTONOMIA => 'Desenvolvimento de disciplina pessoal, cooperação no lar, empatia e Atividades Instrumentais (AIVDs).',
+            self::JOVENS_PROTAGONISTAS => 'Gestão autônoma do tempo, responsabilidades maduras, autocuidado integral e diálogo em família.',
+            self::MANHAS_SEM_ESTRESSE => 'Sequenciamento prático de ABVDs matinais para iniciar o dia com pontualidade, autonomia e leveza.',
+            self::FIM_DE_SEMANA_FAMILIA => 'Tarefas coletivas, cooperação comunitária e fortalecimento de vínculos familiares no fim de semana.',
         };
+    }
+
+    public function baseTerapeutica(): string
+    {
+        return match ($this) {
+            self::PEQUENOS_CONQUISTADORES => 'ABVDs e marcos do Inventário Portage / VB-MAPP (higiene básica, organização inicial e primeiros passos sociais).',
+            self::EXPLORADORES_ROTINA => 'Consolidação autônoma de ABVDs, marcos de desenvolvimento do Portage e regulação de conduta (higiene, rotina e limites).',
+            self::MESTRES_AUTONOMIA => 'Habilidades Sociais avançadas, cooperação no ambiente familiar e Atividades Instrumentais de Vida Diária (AIVDs).',
+            self::JOVENS_PROTAGONISTAS => 'Protagonismo juvenil, gestão autônoma do tempo, autocuidado integral e convivência empática.',
+            self::MANHAS_SEM_ESTRESSE => 'Sequenciamento previsível de ABVDs matinais e autorregulação para iniciar o dia com leveza e pontualidade.',
+            self::FIM_DE_SEMANA_FAMILIA => 'Habilidades Sociais de trabalho em equipe, empatia, cooperação nas tarefas do lar e convivência sem telas.',
+        };
+    }
+
+    /**
+     * @return array<string, array{nome: string, sigla: string, descricao: string}>
+     */
+    public static function basesTerapeuticas(): array
+    {
+        return [
+            'abvds' => [
+                'nome' => 'Atividades Básicas de Vida Diária',
+                'sigla' => 'ABVDs',
+                'descricao' => 'Tarefas essenciais de autocuidado, higiene pessoal, alimentação e sobrevivência que mantêm a independência básica.',
+            ],
+            'vbmapp' => [
+                'nome' => 'Verbal Behavior Milestones Assessment and Placement Program',
+                'sigla' => 'VB-MAPP',
+                'descricao' => 'Avaliação de marcos do desenvolvimento e repertório comportamental baseada na análise do comportamento.',
+            ],
+            'portage' => [
+                'nome' => 'Inventário Portage Operacionalizado',
+                'sigla' => 'IPO',
+                'descricao' => 'Mapeamento do desenvolvimento infantil (0 a 6 anos) em autocuidado, socialização, cognição e linguagem.',
+            ],
+            'habilidades_sociais' => [
+                'nome' => 'Habilidades Sociais Infantis',
+                'sigla' => 'Habilidades Sociais',
+                'descricao' => 'Capacidade de comunicar sentimentos com respeito, cooperar com a família, resolver conflitos e demonstrar empatia.',
+            ],
+        ];
     }
 
     public function faixaEtaria(): ?string
@@ -73,47 +114,54 @@ enum PlaylistMissao: string
     {
         return match ($this) {
             self::PEQUENOS_CONQUISTADORES => [
-                ['descricao' => 'Guardar os brinquedos após brincar', 'moedas' => 5, 'dia' => null],
-                ['descricao' => 'Escovar os dentes de manhã e à noite', 'moedas' => 5, 'dia' => null],
-                ['descricao' => 'Colocar a roupa suja no cesto', 'moedas' => 5, 'dia' => null],
-                ['descricao' => 'Colocar os sapatos no lugar', 'moedas' => 5, 'dia' => null],
-                ['descricao' => 'Comer a frutinha do lanche', 'moedas' => 5, 'dia' => null],
+                ['descricao' => 'Guardar os brinquedos na caixa após brincar', 'moedas' => 5, 'dia' => null],
+                ['descricao' => 'Escovar os dentes com orientação e capricho', 'moedas' => 5, 'dia' => null],
+                ['descricao' => 'Lavar as mãos antes das refeições e após o banheiro', 'moedas' => 5, 'dia' => null],
+                ['descricao' => 'Colocar a roupa suja no cesto ao trocar de roupa', 'moedas' => 5, 'dia' => null],
+                ['descricao' => 'Guardar os sapatos no lugar ao chegar em casa', 'moedas' => 5, 'dia' => null],
+                ['descricao' => 'Comer a frutinha ou refeição à mesa sem telas', 'moedas' => 5, 'dia' => null],
+                ['descricao' => 'Usar as palavrinhas mágicas: por favor e obrigado', 'moedas' => 5, 'dia' => null],
             ],
             self::EXPLORADORES_ROTINA => [
-                ['descricao' => 'Fazer a lição de casa com capricho', 'moedas' => 15, 'dia' => null],
+                ['descricao' => 'Fazer a lição de casa com capricho no horário combinado', 'moedas' => 15, 'dia' => null],
                 ['descricao' => 'Arrumar a própria cama ao acordar', 'moedas' => 10, 'dia' => null],
-                ['descricao' => 'Tomar banho sem precisar de insistência', 'moedas' => 10, 'dia' => null],
-                ['descricao' => 'Organizar a mochila para o dia seguinte', 'moedas' => 10, 'dia' => null],
+                ['descricao' => 'Tomar banho e se vestir de forma independente', 'moedas' => 10, 'dia' => null],
+                ['descricao' => 'Organizar a mochila e materiais para a aula do dia seguinte', 'moedas' => 10, 'dia' => null],
                 ['descricao' => 'Comer legumes e verduras na refeição', 'moedas' => 10, 'dia' => null],
-                ['descricao' => 'Desligar as telas no horário combinado', 'moedas' => 10, 'dia' => null],
+                ['descricao' => 'Desligar as telas no horário combinado com calma', 'moedas' => 10, 'dia' => null],
+                ['descricao' => 'Escovar os dentes após as refeições e antes de dormir', 'moedas' => 10, 'dia' => null],
+                ['descricao' => 'Ajudar a tirar o próprio prato e copo da mesa', 'moedas' => 10, 'dia' => null],
             ],
             self::MESTRES_AUTONOMIA => [
-                ['descricao' => 'Leitura diária de 20 minutos', 'moedas' => 20, 'dia' => null],
-                ['descricao' => 'Ajudar a tirar ou colocar a mesa das refeições', 'moedas' => 15, 'dia' => null],
-                ['descricao' => 'Manter o quarto organizado e gavetas fechadas', 'moedas' => 15, 'dia' => null],
-                ['descricao' => 'Cuidar da água e comida do pet', 'moedas' => 15, 'dia' => null],
-                ['descricao' => 'Estudar para as matérias da semana com antecedência', 'moedas' => 20, 'dia' => null],
-                ['descricao' => 'Guardar o próprio calçado e casaco ao chegar da rua', 'moedas' => 10, 'dia' => null],
+                ['descricao' => 'Leitura diária de 20 minutos com foco e atenção', 'moedas' => 20, 'dia' => null],
+                ['descricao' => 'Ajudar a pôr ou tirar a mesa das refeições da família', 'moedas' => 15, 'dia' => null],
+                ['descricao' => 'Manter o quarto organizado, cama arrumada e gavetas fechadas', 'moedas' => 15, 'dia' => null],
+                ['descricao' => 'Cuidar da água, comida ou higiene do pet da casa', 'moedas' => 15, 'dia' => null],
+                ['descricao' => 'Estudar para as matérias da semana com planejamento prévio', 'moedas' => 20, 'dia' => null],
+                ['descricao' => 'Guardar calçados e pendurar casacos ao chegar da rua', 'moedas' => 10, 'dia' => null],
+                ['descricao' => 'Resolver desentendimentos conversando com calma e respeito', 'moedas' => 15, 'dia' => null],
             ],
             self::JOVENS_PROTAGONISTAS => [
-                ['descricao' => 'Gerenciar horário de estudos sem lembretes', 'moedas' => 25, 'dia' => null],
-                ['descricao' => 'Lavar e secar a própria louça após as refeições', 'moedas' => 20, 'dia' => null],
-                ['descricao' => 'Praticar atividade física ou exercício físico', 'moedas' => 20, 'dia' => null],
-                ['descricao' => 'Trocar a roupa de cama e arrumar o quarto completo', 'moedas' => 30, 'dia' => 'Sábado'],
-                ['descricao' => 'Economizar parte das moedas para um objetivo maior', 'moedas' => 25, 'dia' => null],
+                ['descricao' => 'Gerenciar horários de estudo e prazos escolares sem lembretes', 'moedas' => 25, 'dia' => null],
+                ['descricao' => 'Lavar, secar e guardar a louça após as refeições', 'moedas' => 20, 'dia' => null],
+                ['descricao' => 'Praticar atividade física e manter sono regular', 'moedas' => 20, 'dia' => null],
+                ['descricao' => 'Trocar a roupa de cama e fazer a faxina completa do quarto', 'moedas' => 30, 'dia' => 'Sábado'],
+                ['descricao' => 'Planejar e poupar parte das moedas para metas futuras', 'moedas' => 25, 'dia' => null],
+                ['descricao' => 'Praticar escuta ativa e diálogo respeitoso na convivência familiar', 'moedas' => 20, 'dia' => null],
             ],
             self::MANHAS_SEM_ESTRESSE => [
-                ['descricao' => 'Levantar no primeiro toque do alarme com bom humor', 'moedas' => 15, 'dia' => null],
-                ['descricao' => 'Escovar os dentes e lavar o rosto', 'moedas' => 10, 'dia' => null],
-                ['descricao' => 'Trocar de roupa e vestir o uniforme', 'moedas' => 10, 'dia' => null],
-                ['descricao' => 'Tomar café da manhã sem distrações no celular', 'moedas' => 10, 'dia' => null],
-                ['descricao' => 'Conferir mochila e materiais antes de sair', 'moedas' => 10, 'dia' => null],
+                ['descricao' => 'Levantar no primeiro toque do alarme com disposição e dar bom dia', 'moedas' => 15, 'dia' => null],
+                ['descricao' => 'Higiene matinal: escovar os dentes e lavar o rosto com capricho', 'moedas' => 10, 'dia' => null],
+                ['descricao' => 'Trocar de roupa e vestir o uniforme do dia sem demora', 'moedas' => 10, 'dia' => null],
+                ['descricao' => 'Tomar café da manhã à mesa com calma e sem distrações no celular', 'moedas' => 10, 'dia' => null],
+                ['descricao' => 'Conferir mochila, materiais e chaves antes de sair de casa', 'moedas' => 10, 'dia' => null],
             ],
             self::FIM_DE_SEMANA_FAMILIA => [
-                ['descricao' => 'Ajudar na organização geral da casa no sábado', 'moedas' => 25, 'dia' => 'Sábado'],
-                ['descricao' => 'Recolher e separar o lixo reciclável', 'moedas' => 15, 'dia' => 'Domingo'],
-                ['descricao' => 'Ajudar a preparar uma refeição especial em família', 'moedas' => 20, 'dia' => 'Domingo'],
-                ['descricao' => 'Organizar os armários de brinquedos ou livros', 'moedas' => 20, 'dia' => 'Sábado'],
+                ['descricao' => 'Ajudar na organização geral e limpeza coletiva da casa', 'moedas' => 25, 'dia' => 'Sábado'],
+                ['descricao' => 'Recolher e separar o lixo reciclável da residência', 'moedas' => 15, 'dia' => 'Domingo'],
+                ['descricao' => 'Ajudar a preparar uma refeição ou lanche especial em família', 'moedas' => 20, 'dia' => 'Domingo'],
+                ['descricao' => 'Organizar armários, separar itens ou livros para doação', 'moedas' => 20, 'dia' => 'Sábado'],
+                ['descricao' => 'Participar de momento de lazer ou jogo em família sem telas', 'moedas' => 20, 'dia' => 'Domingo'],
             ],
         };
     }

@@ -769,17 +769,18 @@ $sair = function () {
                 $idadeFilho = $usuarioSelecionado?->obterIdade();
                 $totalMissoesAtiva = count($playlistAtiva->missoes());
                 $todasMarcadas = count($missoesSugeridasSelecionadas) === $totalMissoesAtiva;
+                $basesTerapeuticas = PlaylistMissao::basesTerapeuticas();
             @endphp
 
-            <div class="glass-card" style="margin: 0; border: 2px solid #a855f7; width: 100%; max-width: 440px; max-height: 88vh; overflow-y: auto; display: flex; flex-direction: column; gap: 14px; box-shadow: 0 20px 50px rgba(0,0,0,0.6);">
+            <div class="glass-card" style="margin: 0; border: 2px solid #a855f7; width: 100%; max-width: 480px; max-height: 88vh; overflow-y: auto; display: flex; flex-direction: column; gap: 14px; box-shadow: 0 20px 50px rgba(0,0,0,0.6);" role="dialog" aria-modal="true" aria-labelledby="tituloModalPlaylists">
                 <!-- Cabeçalho do Modal -->
                 <div style="display: flex; justify-content: space-between; align-items: flex-start;">
                     <div>
                         <div style="display: flex; align-items: center; gap: 8px;">
-                            <span style="font-size: 1.4rem;">🎧</span>
-                            <h3 style="font-size: 1.2rem; font-weight: 800; color: #c084fc; margin: 0;">Playlists de Missões</h3>
+                            <span style="font-size: 1.4rem;" aria-hidden="true">🎧</span>
+                            <h3 id="tituloModalPlaylists" style="font-size: 1.2rem; font-weight: 800; color: #c084fc; margin: 0;">Playlists de Missões</h3>
                         </div>
-                        <p style="font-size: 0.82rem; color: var(--text-secondary); margin-top: 4px;">
+                        <p style="font-size: 0.82rem; color: #cbd5e1; margin-top: 4px;">
                             @if($usuarioSelecionado && in_array($usuarioSelecionado->role->value, ['S', 'D']))
                                 Sugestões para <strong>{{ $usuarioSelecionado->name }}</strong>
                                 @if($idadeFilho !== null) ({{ $idadeFilho }} anos) @endif
@@ -790,8 +791,30 @@ $sair = function () {
                     </div>
                     <button type="button" 
                             wire:click="$set('exibirModalPlaylists', false)" 
-                            style="background: none; border: none; color: var(--text-secondary); cursor: pointer; font-size: 1.4rem; line-height: 1; padding: 0 4px;"
-                            title="Fechar">&times;</button>
+                            style="background: none; border: none; color: #cbd5e1; cursor: pointer; font-size: 1.4rem; line-height: 1; padding: 0 4px;"
+                            title="Fechar modal de playlists"
+                            aria-label="Fechar modal de playlists">&times;</button>
+                </div>
+
+                <!-- Destaque das Bases Terapêuticas e de Desenvolvimento -->
+                <div style="background: rgba(168, 85, 247, 0.12); border: 1px solid rgba(168, 85, 247, 0.35); border-radius: 12px; padding: 12px; display: flex; flex-direction: column; gap: 8px;">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <span style="font-size: 1.15rem;" aria-hidden="true">🌱</span>
+                        <h4 style="font-size: 0.85rem; font-weight: 700; color: #d8b4fe; margin: 0;">
+                            Fundamentação Terapêutica & Desenvolvimento
+                        </h4>
+                    </div>
+                    <p style="font-size: 0.76rem; color: #f1f5f9; line-height: 1.45; margin: 0;">
+                        As atividades e faixas etárias são fundamentadas em referenciais clínicos e pedagógicos de desenvolvimento infantil e autonomia:
+                    </p>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 2px;">
+                        @foreach($basesTerapeuticas as $base)
+                            <div style="background: rgba(0, 0, 0, 0.3); border: 1px solid rgba(168, 85, 247, 0.25); border-radius: 8px; padding: 6px 8px;">
+                                <strong style="display: block; font-size: 0.72rem; color: #c084fc;">{{ $base['sigla'] }}</strong>
+                                <span style="font-size: 0.68rem; color: #cbd5e1; line-height: 1.3; display: block;">{{ $base['descricao'] }}</span>
+                            </div>
+                        @endforeach
+                    </div>
                 </div>
 
                 <!-- Lista de Playlists em Accordion Expansível -->
@@ -817,20 +840,20 @@ $sair = function () {
                             <div wire:click="alternarExpansaoPlaylist('{{ $pl->value }}')"
                                  style="padding: 12px 14px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; gap: 10px; user-select: none;">
                                 <div style="display: flex; align-items: center; gap: 10px;">
-                                    <span style="font-size: 1.3rem;">{{ $pl->icone() }}</span>
+                                    <span style="font-size: 1.3rem;" aria-hidden="true">{{ $pl->icone() }}</span>
                                     <div>
                                         <div style="font-size: 0.92rem; font-weight: 700; color: {{ $estaExpandida ? '#c084fc' : '#f8fafc' }};">
                                             {{ $pl->titulo() }}
                                         </div>
                                         <div style="display: flex; align-items: center; gap: 8px; margin-top: 2px;">
-                                            <span style="font-size: 0.72rem; color: var(--text-secondary); background: rgba(255,255,255,0.06); padding: 1px 6px; border-radius: 4px;">
+                                            <span style="font-size: 0.72rem; color: #cbd5e1; background: rgba(255,255,255,0.08); padding: 1px 6px; border-radius: 4px;">
                                                 {{ $pl->faixaEtaria() }}
                                             </span>
-                                            <span style="font-size: 0.72rem; color: var(--text-secondary);">
+                                            <span style="font-size: 0.72rem; color: #cbd5e1;">
                                                 {{ $totalMissoes }} tarefas
                                             </span>
                                             @if($selecionadasDestaPlaylist > 0)
-                                                <span style="font-size: 0.72rem; color: #c084fc; font-weight: 600; background: rgba(168, 85, 247, 0.18); padding: 1px 6px; border-radius: 4px;">
+                                                <span style="font-size: 0.72rem; color: #d8b4fe; font-weight: 600; background: rgba(168, 85, 247, 0.25); padding: 1px 6px; border-radius: 4px;">
                                                     {{ $selecionadasDestaPlaylist }} marcadas
                                                 </span>
                                             @endif
@@ -839,7 +862,7 @@ $sair = function () {
                                 </div>
 
                                 <div style="display: flex; align-items: center; gap: 6px;">
-                                    <span style="color: var(--text-secondary); font-size: 0.75rem; transition: transform 0.2s; display: inline-block; transform: {{ $estaExpandida ? 'rotate(180deg)' : 'rotate(0deg)' }};">
+                                    <span style="color: #cbd5e1; font-size: 0.75rem; transition: transform 0.2s; display: inline-block; transform: {{ $estaExpandida ? 'rotate(180deg)' : 'rotate(0deg)' }};" aria-hidden="true">
                                         ▼
                                     </span>
                                 </div>
@@ -848,15 +871,23 @@ $sair = function () {
                             <!-- Tarefas da Playlist (Expandidas Abaixo Dela) -->
                             @if($estaExpandida)
                                 <div style="padding: 0 14px 14px 14px; border-top: 1px solid rgba(255, 255, 255, 0.06); margin-top: 4px; padding-top: 12px;">
-                                    <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; margin-bottom: 10px;">
-                                        <p style="font-size: 0.78rem; color: var(--text-secondary); margin: 0; line-height: 1.3;">
+                                    <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; margin-bottom: 8px;">
+                                        <p style="font-size: 0.78rem; color: #cbd5e1; margin: 0; line-height: 1.35;">
                                             {{ $pl->descricao() }}
                                         </p>
                                         <button type="button" 
                                                 wire:click="alternarTodasMissoesDaPlaylist('{{ $pl->value }}')"
-                                                style="background: none; border: none; color: #c084fc; font-size: 0.78rem; font-weight: 600; cursor: pointer; white-space: nowrap; padding-left: 6px;">
+                                                style="background: none; border: none; color: #c084fc; font-size: 0.78rem; font-weight: 600; cursor: pointer; white-space: nowrap; padding-left: 6px;"
+                                                aria-label="{{ $todasDestaMarcadas ? 'Desmarcar todas as tarefas desta playlist' : 'Marcar todas as tarefas desta playlist' }}">
                                             {{ $todasDestaMarcadas ? 'Desmarcar' : 'Marcar todas' }}
                                         </button>
+                                    </div>
+
+                                    <!-- Base Terapêutica Específica da Playlist -->
+                                    <div style="background: rgba(168, 85, 247, 0.1); border-left: 3px solid #a855f7; border-radius: 6px; padding: 6px 10px; margin-bottom: 10px;">
+                                        <span style="font-size: 0.72rem; color: #e2e8f0; line-height: 1.35; display: block;">
+                                            <strong style="color: #c084fc;">Base Terapêutica:</strong> {{ $pl->baseTerapeutica() }}
+                                        </span>
                                     </div>
 
                                     <!-- Lista de Tarefas Inline -->

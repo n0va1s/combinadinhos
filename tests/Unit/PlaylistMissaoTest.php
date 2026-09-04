@@ -13,6 +13,7 @@ class PlaylistMissaoTest extends TestCase
             $this->assertNotEmpty($playlist->titulo());
             $this->assertNotEmpty($playlist->icone());
             $this->assertNotEmpty($playlist->descricao());
+            $this->assertNotEmpty($playlist->baseTerapeutica());
             
             $missoes = $playlist->missoes();
             $this->assertIsArray($missoes);
@@ -40,5 +41,21 @@ class PlaylistMissaoTest extends TestCase
 
         // Padrão quando idade é nula
         $this->assertSame(PlaylistMissao::EXPLORADORES_ROTINA, PlaylistMissao::porIdade(null));
+    }
+
+    public function test_retorna_bases_terapeuticas_gerais(): void
+    {
+        $bases = PlaylistMissao::basesTerapeuticas();
+
+        $this->assertArrayHasKey('abvds', $bases);
+        $this->assertArrayHasKey('vbmapp', $bases);
+        $this->assertArrayHasKey('portage', $bases);
+        $this->assertArrayHasKey('habilidades_sociais', $bases);
+
+        foreach ($bases as $base) {
+            $this->assertNotEmpty($base['nome']);
+            $this->assertNotEmpty($base['sigla']);
+            $this->assertNotEmpty($base['descricao']);
+        }
     }
 }
