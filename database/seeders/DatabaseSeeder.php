@@ -13,43 +13,49 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         // Cria uma família default
-        $family = Family::create([
+        $familia = Family::create([
             'name' => 'Família Silva'
         ]);
 
-        $filho = \App\Models\User::create([
+        $filha = User::create([
             'name' => 'Filha',
             'email' => 'filha@email.com',
-            'role' => \App\Enums\UserRole::FILHA,
+            'role' => UserRole::FILHA,
+            'birth_date' => now()->subYears(10)->toDateString(),
             'password' => Hash::make('localhost@1'),
-            'family_id' => $family->id,
+            'family_id' => $familia->id,
         ]);
 
-        $pai = \App\Models\User::create([
+        // Filha Mais Nova sem missões cadastradas para teste de playlists
+        $filhaMaisNova = User::create([
+            'name' => 'Filha Mais Nova',
+            'email' => 'filhamaisnova@email.com',
+            'role' => UserRole::FILHA,
+            'birth_date' => now()->subYears(4)->toDateString(),
+            'password' => Hash::make('localhost@1'),
+            'family_id' => $familia->id,
+        ]);
+
+        $pai = User::create([
             'name' => 'Pai',
             'email' => 'pai@email.com',
-            'role' => \App\Enums\UserRole::PAI,
+            'role' => UserRole::PAI,
             'password' => Hash::make('localhost@1'),
-            'family_id' => $family->id,
+            'family_id' => $familia->id,
         ]);
 
-        $mae = \App\Models\User::create([
+        $mae = User::create([
             'name' => 'Mãe',
             'email' => 'mae@email.com',
-            'role' => \App\Enums\UserRole::MAE,
+            'role' => UserRole::MAE,
             'password' => Hash::make('localhost@1'),
-            'family_id' => $family->id,
+            'family_id' => $familia->id,
         ]);
-
-        // (Os usuários padrão foram removidos conforme solicitado, permitindo o registro manual)
 
         $this->call([
             MissionSeeder::class,
             RewardSeeder::class,
         ]);
-
-        // Associa todas as missões e recompensas criadas anteriormente à família
-
-
+       
     }
 }

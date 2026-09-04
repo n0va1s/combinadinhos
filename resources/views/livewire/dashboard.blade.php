@@ -5,6 +5,8 @@ use App\Models\Mission;
 use App\Models\Transaction;
 use App\Models\Reward;
 use App\Enums\TransactionStatus;
+use App\Enums\PlaylistMissao;
+use App\Services\MissaoSugeridaService;
 use Illuminate\Support\Facades\Auth;
 use function Livewire\Volt\{state, mount, layout};
 
@@ -26,6 +28,9 @@ state([
     'recompensas' => [],
     'descricaoNovaRecompensa' => '',
     'custoNovaRecompensa' => '',
+    'exibirModalPlaylists' => false,
+    'playlistSelecionada' => PlaylistMissao::EXPLORADORES_ROTINA->value,
+    'missoesSugeridasSelecionadas' => [],
 ]);
 
 mount(function () {
@@ -369,6 +374,102 @@ $excluirMissao = function ($idMissao) {
     }
 };
 
+$abrirModalPlaylists = function () {
+    $idade = $this->usuarioSelecionado?->obterIdade();
+    $playlistPadrao = PlaylistMissao::porIdade($idade);
+
+    $this->playlistSelecionada = $playlistPadrao->value;
+    
+    // Pré-seleciona as missões da playlist padrão recomendada
+    $chaves = [];
+    foreach ($playlistPadrao->missoes() as $indice => $missao) {
+        $chaves[] = "{$playlistPadrao->value}_{$indice}";
+    }
+    $this->missoesSugeridasSelecionadas = $chaves;
+    $this->exibirModalPlaylists = true;
+};
+
+$fecharModalPlaylists = function () {
+    $this->exibirModalPlaylists = false;
+};
+
+$alternarExpansaoPlaylist = function (string $valorPlaylist) {
+    if ($this->playlistSelecionada === $valorPlaylist) {
+        $this->playlistSelecionada = null;
+    } else {
+        $this->playlistSelecionada = $valorPlaylist;
+    }
+};
+
+$alternarSelecaoMissao = function (string $chaveMissao) {
+    if (in_array($chaveMissao, $this->missoesSugeridasSelecionadas)) {
+        $this->missoesSugeridasSelecionadas = array_values(array_diff($this->missoesSugeridasSelecionadas, [$chaveMissao]));
+    } else {
+        $this->missoesSugeridasSelecionadas[] = $chaveMissao;
+    }
+};
+
+$alternarTodasMissoesDaPlaylist = function (string $valorPlaylist) {
+    $playlist = PlaylistMissao::tryFrom($valorPlaylist);
+    if (!$playlist) return;
+
+    $totalMissoes = count($playlist->missoes());
+    $chavesDesta = [];
+    for ($i = 0; $i < $totalMissoes; $i++) {
+        $chavesDesta[] = "{$valorPlaylist}_{$i}";
+    }
+
+    $todasJaMarcadas = count(array_intersect($chavesDesta, $this->missoesSugeridasSelecionadas)) === $totalMissoes;
+
+    if ($todasJaMarcadas) {
+        $this->missoesSugeridasSelecionadas = array_values(array_diff($this->missoesSugeridasSelecionadas, $chavesDesta));
+    } else {
+        $this->missoesSugeridasSelecionadas = array_values(array_unique(array_merge($this->missoesSugeridasSelecionadas, $chavesDesta)));
+    }
+};
+
+$adicionarMissoesSugeridas = function (MissaoSugeridaService $servicoMissoes) {
+    if (!$this->usuarioSelecionado || !in_array($this->usuarioSelecionado->role->value, ['S', 'D'])) {
+        \Flux::toast(
+            heading: 'Atenção ⚠️',
+            text: 'Selecione um filho ou filha no painel para adicionar as missões.',
+            variant: 'warning'
+        );
+        return;
+    }
+
+    $missoesParaAdicionar = [];
+    foreach (PlaylistMissao::cases() as $pl) {
+        $todasMissoes = $pl->missoes();
+        foreach ($todasMissoes as $idx => $missao) {
+            $chave = "{$pl->value}_{$idx}";
+            if (in_array($chave, $this->missoesSugeridasSelecionadas)) {
+                $missoesParaAdicionar[] = $missao;
+            }
+        }
+    }
+
+    if (empty($missoesParaAdicionar)) {
+        \Flux::toast(
+            heading: 'Nenhuma missão selecionada',
+            text: 'Selecione ao menos uma missão para adicionar à rotina.',
+            variant: 'warning'
+        );
+        return;
+    }
+
+    $quantidadeCriada = $servicoMissoes->vincularMissoesAoUsuario($this->usuarioSelecionado, $missoesParaAdicionar);
+
+    $this->exibirModalPlaylists = false;
+    $this->carregarMissoes();
+
+    \Flux::toast(
+        heading: 'Playlist Adicionada! 🎵',
+        text: "{$quantidadeCriada} missões foram adicionadas para {$this->usuarioSelecionado->name}.",
+        variant: 'success'
+    );
+};
+
 $sair = function () {
     Auth::logout();
     request()->session()->invalidate();
@@ -404,7 +505,13 @@ $sair = function () {
                     @endif
                 </h3>
                 @if(auth()->check() && in_array(auth()->user()->role->value, ['P', 'M']))
-                    <div style="display: flex; gap: 8px;">
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        <button type="button" 
+                                wire:click="abrirModalPlaylists" 
+                                title="Playlists Sugeridas de Missões"
+                                style="background: rgba(168, 85, 247, 0.15); border: 1px solid #a855f7; border-radius: 8px; padding: 6px 12px; display: flex; align-items: center; gap: 6px; cursor: pointer; color: #c084fc; font-size: 0.85rem; font-weight: 600; transition: all 0.2s;">
+                            <span>💡</span> Playlists
+                        </button>
                         <button wire:click="$toggle('exibirSecaoNovaMissao')" 
                                 title="{{ $exibirSecaoNovaMissao ? 'Ocultar Cadastro' : 'Cadastrar Missão' }}"
                                 style="background: {{ $exibirSecaoNovaMissao ? 'rgba(168, 85, 247, 0.2)' : 'rgba(255,255,255,0.05)' }}; border: 1px solid {{ $exibirSecaoNovaMissao ? '#a855f7' : 'var(--card-border)' }}; border-radius: 8px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s;">
@@ -555,6 +662,15 @@ $sair = function () {
                 <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 12px;">
                     Adicione uma nova tarefa rápida para notificar imediatamente as crianças com aviso em texto e sinal sonoro!
                 </p>
+                <div style="background: rgba(168, 85, 247, 0.1); border: 1px dashed rgba(168, 85, 247, 0.5); border-radius: 10px; padding: 10px 12px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; gap: 10px;">
+                    <div>
+                        <div style="font-size: 0.85rem; font-weight: 700; color: #e9d5ff;">Sem ideias para novas missões?</div>
+                        <div style="font-size: 0.8rem; color: var(--text-secondary);">Use uma lista pronta baseada na idade do seu filho.</div>
+                    </div>
+                    <button type="button" wire:click="abrirModalPlaylists" class="btn-primary" style="background: #a855f7; font-size: 0.8rem; padding: 6px 12px; white-space: nowrap; box-shadow: none;">
+                        Ver Playlists 🎵
+                    </button>
+                </div>
                 <form wire:submit.prevent="adicionarTarefaRapida" style="display: flex; flex-direction: column; gap: 10px;">
                     <input type="text" wire:model="descricaoNovaTarefa" placeholder="Ex: Escovar os dentes" style="background: rgba(0,0,0,0.2); border: 1px solid var(--card-border); border-radius: 8px; padding: 10px; color: #fff; font-family: inherit;" required>
                     <input type="number" wire:model="moedasNovaTarefa" placeholder="Quantas moedas vale? Ex: 10" style="background: rgba(0,0,0,0.2); border: 1px solid var(--card-border); border-radius: 8px; padding: 10px; color: #fff; font-family: inherit;" required>
@@ -580,8 +696,19 @@ $sair = function () {
             <h2 style="font-size: 1.3rem; margin: 15px 0 10px; font-weight: 800;">Missões do Dia</h2>
             
             @if(count($missoes) === 0)
-                <div class="glass-card" style="text-align: center; color: var(--text-secondary); margin: 0 0 15px 0;">
-                    Nenhuma missão cadastrada para esta família ainda.
+                <div class="glass-card" style="text-align: center; color: var(--text-secondary); margin: 0 0 15px 0; padding: 24px 16px;">
+                    @if(auth()->check() && in_array(auth()->user()->role->value, ['P', 'M']) && in_array($usuarioSelecionado->role->value, ['S', 'D']))
+                        <span style="font-size: 2.2rem; display: block; margin-bottom: 8px;">📋✨</span>
+                        <h4 style="font-size: 1.1rem; font-weight: 700; color: #f8fafc; margin-bottom: 6px;">Nenhuma missão ainda</h4>
+                        <p style="font-size: 0.85rem; color: var(--text-secondary); max-width: 380px; margin: 0 auto 16px;">
+                            Que tal uma playlist da nossa comunidade com missões recomendada para a idade de {{ $usuarioSelecionado->name }}?
+                        </p>
+                        <button type="button" wire:click="abrirModalPlaylists" class="btn-primary" style="background: #a855f7; display: inline-flex; align-items: center; gap: 6px; padding: 10px 20px; font-size: 0.9rem;">
+                            <span>🎧</span> Explorar Playlists de Missões
+                        </button>
+                    @else
+                        Selecione seu filho ou filha
+                    @endif
                 </div>
             @else
                 @foreach($missoes as $missao)
@@ -630,6 +757,162 @@ $sair = function () {
                     </div>
                 @endforeach
             @endif
+        </div>
+    @endif
+
+    <!-- Modal de Playlists de Missões Sugeridas (Design Nativo da Aplicação) -->
+    @if($exibirModalPlaylists)
+        <div style="position: fixed; inset: 0; z-index: 1000; background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); display: flex; align-items: center; justify-content: center; padding: 15px;">
+            @php
+                $playlistAtiva = PlaylistMissao::tryFrom($playlistSelecionada) ?? PlaylistMissao::EXPLORADORES_ROTINA;
+                $todasPlaylists = PlaylistMissao::cases();
+                $idadeFilho = $usuarioSelecionado?->obterIdade();
+                $totalMissoesAtiva = count($playlistAtiva->missoes());
+                $todasMarcadas = count($missoesSugeridasSelecionadas) === $totalMissoesAtiva;
+            @endphp
+
+            <div class="glass-card" style="margin: 0; border: 2px solid #a855f7; width: 100%; max-width: 440px; max-height: 88vh; overflow-y: auto; display: flex; flex-direction: column; gap: 14px; box-shadow: 0 20px 50px rgba(0,0,0,0.6);">
+                <!-- Cabeçalho do Modal -->
+                <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                    <div>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <span style="font-size: 1.4rem;">🎧</span>
+                            <h3 style="font-size: 1.2rem; font-weight: 800; color: #c084fc; margin: 0;">Playlists de Missões</h3>
+                        </div>
+                        <p style="font-size: 0.82rem; color: var(--text-secondary); margin-top: 4px;">
+                            @if($usuarioSelecionado && in_array($usuarioSelecionado->role->value, ['S', 'D']))
+                                Sugestões para <strong>{{ $usuarioSelecionado->name }}</strong>
+                                @if($idadeFilho !== null) ({{ $idadeFilho }} anos) @endif
+                            @else
+                                Toque em uma playlist para ver e selecionar as tarefas:
+                            @endif
+                        </p>
+                    </div>
+                    <button type="button" 
+                            wire:click="$set('exibirModalPlaylists', false)" 
+                            style="background: none; border: none; color: var(--text-secondary); cursor: pointer; font-size: 1.4rem; line-height: 1; padding: 0 4px;"
+                            title="Fechar">&times;</button>
+                </div>
+
+                <!-- Lista de Playlists em Accordion Expansível -->
+                <div style="display: flex; flex-direction: column; gap: 10px;">
+                    @foreach($todasPlaylists as $pl)
+                        @php
+                            $estaExpandida = $playlistSelecionada === $pl->value;
+                            $missoesDaPlaylist = $pl->missoes();
+                            $totalMissoes = count($missoesDaPlaylist);
+                            
+                            $selecionadasDestaPlaylist = 0;
+                            foreach(range(0, $totalMissoes - 1) as $idx) {
+                                if (in_array("{$pl->value}_{$idx}", $missoesSugeridasSelecionadas)) {
+                                    $selecionadasDestaPlaylist++;
+                                }
+                            }
+                            $todasDestaMarcadas = $selecionadasDestaPlaylist === $totalMissoes;
+                        @endphp
+
+                        <div style="background: {{ $estaExpandida ? 'rgba(168, 85, 247, 0.12)' : 'rgba(0, 0, 0, 0.25)' }}; border: 1px solid {{ $estaExpandida ? '#a855f7' : 'var(--card-border)' }}; border-radius: 14px; overflow: hidden; transition: all 0.2s;">
+                            
+                            <!-- Cabeçalho Clicável da Playlist -->
+                            <div wire:click="alternarExpansaoPlaylist('{{ $pl->value }}')"
+                                 style="padding: 12px 14px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; gap: 10px; user-select: none;">
+                                <div style="display: flex; align-items: center; gap: 10px;">
+                                    <span style="font-size: 1.3rem;">{{ $pl->icone() }}</span>
+                                    <div>
+                                        <div style="font-size: 0.92rem; font-weight: 700; color: {{ $estaExpandida ? '#c084fc' : '#f8fafc' }};">
+                                            {{ $pl->titulo() }}
+                                        </div>
+                                        <div style="display: flex; align-items: center; gap: 8px; margin-top: 2px;">
+                                            <span style="font-size: 0.72rem; color: var(--text-secondary); background: rgba(255,255,255,0.06); padding: 1px 6px; border-radius: 4px;">
+                                                {{ $pl->faixaEtaria() }}
+                                            </span>
+                                            <span style="font-size: 0.72rem; color: var(--text-secondary);">
+                                                {{ $totalMissoes }} tarefas
+                                            </span>
+                                            @if($selecionadasDestaPlaylist > 0)
+                                                <span style="font-size: 0.72rem; color: #c084fc; font-weight: 600; background: rgba(168, 85, 247, 0.18); padding: 1px 6px; border-radius: 4px;">
+                                                    {{ $selecionadasDestaPlaylist }} marcadas
+                                                </span>
+                                            @endif
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div style="display: flex; align-items: center; gap: 6px;">
+                                    <span style="color: var(--text-secondary); font-size: 0.75rem; transition: transform 0.2s; display: inline-block; transform: {{ $estaExpandida ? 'rotate(180deg)' : 'rotate(0deg)' }};">
+                                        ▼
+                                    </span>
+                                </div>
+                            </div>
+
+                            <!-- Tarefas da Playlist (Expandidas Abaixo Dela) -->
+                            @if($estaExpandida)
+                                <div style="padding: 0 14px 14px 14px; border-top: 1px solid rgba(255, 255, 255, 0.06); margin-top: 4px; padding-top: 12px;">
+                                    <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; margin-bottom: 10px;">
+                                        <p style="font-size: 0.78rem; color: var(--text-secondary); margin: 0; line-height: 1.3;">
+                                            {{ $pl->descricao() }}
+                                        </p>
+                                        <button type="button" 
+                                                wire:click="alternarTodasMissoesDaPlaylist('{{ $pl->value }}')"
+                                                style="background: none; border: none; color: #c084fc; font-size: 0.78rem; font-weight: 600; cursor: pointer; white-space: nowrap; padding-left: 6px;">
+                                            {{ $todasDestaMarcadas ? 'Desmarcar' : 'Marcar todas' }}
+                                        </button>
+                                    </div>
+
+                                    <!-- Lista de Tarefas Inline -->
+                                    <div style="display: flex; flex-direction: column; gap: 8px;">
+                                        @foreach($missoesDaPlaylist as $indice => $missao)
+                                            @php
+                                                $chave = "{$pl->value}_{$indice}";
+                                                $marcada = in_array($chave, $missoesSugeridasSelecionadas);
+                                            @endphp
+                                            <div wire:click="alternarSelecaoMissao('{{ $chave }}')"
+                                                 style="background: {{ $marcada ? 'rgba(168, 85, 247, 0.18)' : 'rgba(0, 0, 0, 0.2)' }}; border: 1px solid {{ $marcada ? '#a855f7' : 'var(--card-border)' }}; border-radius: 10px; padding: 10px 12px; display: flex; justify-content: space-between; align-items: center; gap: 10px; cursor: pointer; transition: all 0.15s;">
+                                                <div style="display: flex; align-items: center; gap: 10px;">
+                                                    <input type="checkbox" 
+                                                           {{ $marcada ? 'checked' : '' }} 
+                                                           style="cursor: pointer; accent-color: #a855f7; width: 16px; height: 16px; pointer-events: none;" />
+                                                    <span style="font-size: 0.85rem; font-weight: 500; color: {{ $marcada ? '#f8fafc' : 'var(--text-secondary)' }};">
+                                                        {{ $missao['descricao'] }}
+                                                    </span>
+                                                </div>
+                                                <div style="display: flex; align-items: center; gap: 6px; flex-shrink: 0;">
+                                                    @if(!empty($missao['dia']))
+                                                        <span style="font-size: 0.72rem; color: var(--text-secondary); background: rgba(255,255,255,0.06); padding: 2px 6px; border-radius: 6px;">
+                                                            📅 {{ $missao['dia'] }}
+                                                        </span>
+                                                    @endif
+                                                    <span style="font-size: 0.82rem; color: #818cf8; font-weight: 600; background: rgba(129, 140, 248, 0.15); padding: 2px 8px; border-radius: 8px;">
+                                                        🪙 +{{ $missao['moedas'] }}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        @endforeach
+                                    </div>
+                                </div>
+                            @endif
+
+                        </div>
+                    @endforeach
+                </div>
+
+                <!-- Rodapé com Ações -->
+                <div style="display: flex; gap: 10px; border-top: 1px solid var(--card-border); padding-top: 10px;">
+                    <button type="button" 
+                            wire:click="$set('exibirModalPlaylists', false)"
+                            class="btn-primary" 
+                            style="flex: 1; background: rgba(255, 255, 255, 0.05); border: 1px solid var(--card-border); color: var(--text-secondary); box-shadow: none; font-size: 0.85rem; padding: 10px;">
+                        Cancelar
+                    </button>
+                    <button type="button" 
+                            wire:click="adicionarMissoesSugeridas" 
+                            class="btn-primary" 
+                            style="flex: 2; background: #a855f7; box-shadow: 0 4px 12px rgba(168, 85, 247, 0.35); font-size: 0.85rem; padding: 10px; opacity: {{ count($missoesSugeridasSelecionadas) === 0 ? '0.5' : '1' }};"
+                            {{ count($missoesSugeridasSelecionadas) === 0 ? 'disabled' : '' }}>
+                        ➕ Adicionar à Rotina ({{ count($missoesSugeridasSelecionadas) }})
+                    </button>
+                </div>
+            </div>
         </div>
     @endif
 

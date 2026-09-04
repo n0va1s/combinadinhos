@@ -10,9 +10,12 @@ class MissionSeeder extends Seeder
 {
     public function run(): void
     {
-        $filhos = User::whereIn('role', [\App\Enums\UserRole::FILHO, \App\Enums\UserRole::FILHA])->get();
-        if ($filhos->isEmpty()) {
-            $filhos = User::all();
+        // Retorna apenas a primeira filha, deixando a mais nova sem nenhuma missão
+        $filha = User::where('email', 'filha@email.com')->first()
+            ?? User::whereIn('role', [\App\Enums\UserRole::FILHO, \App\Enums\UserRole::FILHA])->oldest()->first();
+
+        if ($filha === null) {
+            return;
         }
 
         $missions = [
@@ -83,12 +86,10 @@ class MissionSeeder extends Seeder
             ]
         ];
 
-        foreach ($filhos as $filho) {
-            foreach ($missions as $mission) {
-                $dadosMissao = $mission;
-                $dadosMissao['user_id'] = $filho->id;
-                Mission::create($dadosMissao);
-            }
+        foreach ($missions as $mission) {
+            $dadosMissao = $mission;
+            $dadosMissao['user_id'] = $filha->id;
+            Mission::create($dadosMissao);
         }
     }
 }

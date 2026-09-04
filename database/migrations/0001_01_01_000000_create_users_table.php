@@ -11,7 +11,7 @@ return new class extends Migration
         Schema::create('users', function (Blueprint $table) {
             $table->uuid('id')->primary();
             $table->string('name');
-            $table->string('telegram_id')->unique()->nullable();
+            $table->date('birth_date')->nullable();
             $table->string('role')->default('S'); // PAI (P), MAE (M), FILHO (S), FILHA (D)
             $table->integer('balance')->default(0);
             
