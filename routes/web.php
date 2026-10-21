@@ -11,6 +11,10 @@ Volt::route('/dashboard', 'dashboard')
     ->middleware('auth')
     ->name('dashboard');
 
+Volt::route('/extrato', 'extrato')
+    ->middleware('auth')
+    ->name('extrato');
+
 require __DIR__.'/auth.php';
 
 
