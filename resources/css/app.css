@@ -272,3 +272,15 @@ h1, h2, h3, h4 {
 .auth-card [class*='text-red'] {
     color: #fca5a5 !important;
 }
+
+/* Linha de ações (link "Esqueceu a senha?" + botão) com respiro entre itens */
+.auth-card .flex.items-center.justify-end {
+    gap: 14px;
+    flex-wrap: wrap;
+}
+
+/* Garante que o link não cole no botão mesmo sem a classe utilitária */
+.auth-card a + button,
+.auth-card a + .btn-primary {
+    margin-left: 4px;
+}

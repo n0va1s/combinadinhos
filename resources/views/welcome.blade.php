@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Combinadinhos 🤝</title>
-    
+
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -146,13 +146,10 @@
         <h1>Combinadinhos 🤝</h1>
         <p>Cadastre sua Família e comece a transformação de quem você ama!</p>
 
-        @auth
-            <a href="/dashboard" class="cta-btn">Missões do Dia 🎯</a>
-            <a href="/register" class="sec-btn">Cadastrar os Demais 🏠</a>
-        @else
-            <a href="/register" class="cta-btn">Começar Agora Grátis 🚀</a>
-            <a href="/login" class="sec-btn">Já tenho conta / Acessar 🔑</a>
-        @endauth
+        @guest
+        <a href="/login" class="cta-btn">Já tenho conta / Acessar 🔑</a>
+        <a href="/register" class="sec-btn">Cadastre-se Grátis 🚀</a>
+        @endguest
 
         <div class="features">
             <div class="feature-item">
