@@ -3,10 +3,7 @@
 use App\Models\User;
 use App\Models\Mission;
 use App\Models\Transaction;
-use App\Models\Reward;
 use App\Enums\TransactionStatus;
-use App\Enums\PlaylistMissao;
-use App\Services\MissaoSugeridaService;
 use Illuminate\Support\Facades\Auth;
 use function Livewire\Volt\{state, mount, layout};
 
@@ -20,17 +17,6 @@ state([
     'somVerificado' => false,
     'hashUltimasMissoes' => '',
     'transacoesPendentes' => [],
-    'exibirSecaoNovaMissao' => false,
-    'descricaoNovaTarefa' => '',
-    'moedasNovaTarefa' => '',
-    'diaNovaTarefa' => '',
-    'exibirModalRecompensas' => false,
-    'recompensas' => [],
-    'descricaoNovaRecompensa' => '',
-    'custoNovaRecompensa' => '',
-    'exibirModalPlaylists' => false,
-    'playlistSelecionada' => PlaylistMissao::EXPLORADORES_ROTINA->value,
-    'missoesSugeridasSelecionadas' => [],
 ]);
 
 mount(function () {
@@ -42,7 +28,6 @@ mount(function () {
     $this->carregarUsuarios();
     $this->carregarMissoes(silencioso: true);
     $this->carregarTransacoesPendentes();
-    $this->carregarRecompensas();
 });
 
 $carregarUsuarios = function () {
@@ -114,119 +99,6 @@ $selecionarUsuario = function ($id) {
     $this->usuarioSelecionado = User::find($id);
     $this->carregarUsuarios();
     $this->carregarMissoes(silencioso: true);
-    $this->carregarRecompensas();
-};
-
-$adicionarTarefaRapida = function () {
-    if (!$this->usuarioSelecionado) return;
-    if (!$this->descricaoNovaTarefa || !$this->moedasNovaTarefa) return;
-
-    Mission::create([
-        'description' => $this->descricaoNovaTarefa,
-        'coins' => (int) $this->moedasNovaTarefa,
-        'day' => $this->diaNovaTarefa ?: null,
-        'user_id' => $this->usuarioSelecionado->id,
-    ]);
-
-    $this->descricaoNovaTarefa = '';
-    $this->moedasNovaTarefa = '';
-    $this->diaNovaTarefa = '';
-    $this->carregarMissoes();
-};
-
-$carregarRecompensas = function () {
-    if ($this->usuarioSelecionado) {
-        $this->recompensas = Reward::where('user_id', $this->usuarioSelecionado->id)->orderBy('cost', 'asc')->get();
-    } else {
-        $this->recompensas = [];
-    }
-};
-
-$adicionarRecompensa = function () {
-    if (!$this->usuarioSelecionado) return;
-    if (!$this->descricaoNovaRecompensa || !$this->custoNovaRecompensa) return;
-
-    Reward::create([
-        'description' => $this->descricaoNovaRecompensa,
-        'cost' => (int) $this->custoNovaRecompensa,
-        'user_id' => $this->usuarioSelecionado->id,
-    ]);
-
-    $this->descricaoNovaRecompensa = '';
-    $this->custoNovaRecompensa = '';
-    $this->carregarRecompensas();
-
-    \Flux::toast(
-        heading: 'Recompensa Adicionada! 🎁',
-        text: 'Nova recompensa disponível para resgate.',
-        variant: 'success'
-    );
-};
-
-$resgatarRecompensa = function ($idRecompensa) {
-    if (!$this->usuarioSelecionado) return;
-
-    $recompensa = Reward::find($idRecompensa);
-    if (!$recompensa) return;
-
-    $usuarioLogado = auth()->user();
-    $ehResponsavel = $usuarioLogado && in_array($usuarioLogado->role->value, ['P', 'M']);
-
-    if ($ehResponsavel) {
-        $this->usuarioSelecionado->balance -= $recompensa->cost;
-        $this->usuarioSelecionado->save();
-
-        Transaction::create([
-            'action' => 'Resgatou',
-            'user_name' => $this->usuarioSelecionado->name,
-            'detail' => 'Resgatou recompensa: ' . $recompensa->description,
-            'amount' => -$recompensa->cost,
-            'status' => TransactionStatus::APROVADO,
-            'user_id' => $this->usuarioSelecionado->id,
-        ]);
-
-        $this->carregarUsuarios();
-
-        \Flux::toast(
-            heading: 'Recompensa Resgatada! 🎉',
-            text: "{$this->usuarioSelecionado->name} resgatou: {$recompensa->description}",
-            variant: 'success'
-        );
-
-        $this->dispatch('play-task-alert', ['sound' => 'applause']);
-    } else {
-        if ($this->usuarioSelecionado->balance < $recompensa->cost) {
-            \Flux::toast(
-                heading: 'Saldo Insuficiente 😢',
-                text: "Você precisa de mais " . ($recompensa->cost - $this->usuarioSelecionado->balance) . " moedas.",
-                variant: 'danger'
-            );
-            return;
-        }
-
-        Transaction::create([
-            'action' => 'Resgate',
-            'user_name' => $this->usuarioSelecionado->name,
-            'detail' => 'Aguardando Aprovação (Resgate): ' . $recompensa->description,
-            'amount' => -$recompensa->cost,
-            'status' => TransactionStatus::PENDENTE,
-            'user_id' => $this->usuarioSelecionado->id,
-        ]);
-
-        \Flux::toast(
-            heading: 'Enviado para Aprovação! ⏳',
-            text: "Seu pedido de resgate foi enviado.",
-            variant: 'info'
-        );
-    }
-};
-
-$excluirRecompensa = function ($idRecompensa) {
-    $recompensa = Reward::find($idRecompensa);
-    if ($recompensa) {
-        $recompensa->delete();
-        $this->carregarRecompensas();
-    }
 };
 
 $marcarComoConcluido = function ($idMissao) {
@@ -374,102 +246,6 @@ $excluirMissao = function ($idMissao) {
     }
 };
 
-$abrirModalPlaylists = function () {
-    $idade = $this->usuarioSelecionado?->obterIdade();
-    $playlistPadrao = PlaylistMissao::porIdade($idade);
-
-    $this->playlistSelecionada = $playlistPadrao->value;
-
-    // Pré-seleciona as missões da playlist padrão recomendada
-    $chaves = [];
-    foreach ($playlistPadrao->missoes() as $indice => $missao) {
-        $chaves[] = "{$playlistPadrao->value}_{$indice}";
-    }
-    $this->missoesSugeridasSelecionadas = $chaves;
-    $this->exibirModalPlaylists = true;
-};
-
-$fecharModalPlaylists = function () {
-    $this->exibirModalPlaylists = false;
-};
-
-$alternarExpansaoPlaylist = function (string $valorPlaylist) {
-    if ($this->playlistSelecionada === $valorPlaylist) {
-        $this->playlistSelecionada = null;
-    } else {
-        $this->playlistSelecionada = $valorPlaylist;
-    }
-};
-
-$alternarSelecaoMissao = function (string $chaveMissao) {
-    if (in_array($chaveMissao, $this->missoesSugeridasSelecionadas)) {
-        $this->missoesSugeridasSelecionadas = array_values(array_diff($this->missoesSugeridasSelecionadas, [$chaveMissao]));
-    } else {
-        $this->missoesSugeridasSelecionadas[] = $chaveMissao;
-    }
-};
-
-$alternarTodasMissoesDaPlaylist = function (string $valorPlaylist) {
-    $playlist = PlaylistMissao::tryFrom($valorPlaylist);
-    if (!$playlist) return;
-
-    $totalMissoes = count($playlist->missoes());
-    $chavesDesta = [];
-    for ($i = 0; $i < $totalMissoes; $i++) {
-        $chavesDesta[] = "{$valorPlaylist}_{$i}";
-    }
-
-    $todasJaMarcadas = count(array_intersect($chavesDesta, $this->missoesSugeridasSelecionadas)) === $totalMissoes;
-
-    if ($todasJaMarcadas) {
-        $this->missoesSugeridasSelecionadas = array_values(array_diff($this->missoesSugeridasSelecionadas, $chavesDesta));
-    } else {
-        $this->missoesSugeridasSelecionadas = array_values(array_unique(array_merge($this->missoesSugeridasSelecionadas, $chavesDesta)));
-    }
-};
-
-$adicionarMissoesSugeridas = function (MissaoSugeridaService $servicoMissoes) {
-    if (!$this->usuarioSelecionado || !in_array($this->usuarioSelecionado->role->value, ['S', 'D'])) {
-        \Flux::toast(
-            heading: 'Atenção ⚠️',
-            text: 'Selecione um filho ou filha no painel para adicionar as missões.',
-            variant: 'warning'
-        );
-        return;
-    }
-
-    $missoesParaAdicionar = [];
-    foreach (PlaylistMissao::cases() as $pl) {
-        $todasMissoes = $pl->missoes();
-        foreach ($todasMissoes as $idx => $missao) {
-            $chave = "{$pl->value}_{$idx}";
-            if (in_array($chave, $this->missoesSugeridasSelecionadas)) {
-                $missoesParaAdicionar[] = $missao;
-            }
-        }
-    }
-
-    if (empty($missoesParaAdicionar)) {
-        \Flux::toast(
-            heading: 'Nenhuma missão selecionada',
-            text: 'Selecione ao menos uma missão para adicionar à rotina.',
-            variant: 'warning'
-        );
-        return;
-    }
-
-    $quantidadeCriada = $servicoMissoes->vincularMissoesAoUsuario($this->usuarioSelecionado, $missoesParaAdicionar);
-
-    $this->exibirModalPlaylists = false;
-    $this->carregarMissoes();
-
-    \Flux::toast(
-        heading: 'Playlist Adicionada! 🎵',
-        text: "{$quantidadeCriada} missões foram adicionadas para {$this->usuarioSelecionado->name}.",
-        variant: 'success'
-    );
-};
-
 $sair = function () {
     Auth::logout();
     request()->session()->invalidate();
@@ -485,6 +261,15 @@ $sair = function () {
         <span class="header-logo">Combinadinhos 🤝</span>
         @if($usuarioSelecionado)
             <div style="display: flex; align-items: center; gap: 8px;">
+                <a href="{{ route('register') }}" wire:navigate
+                   title="Cadastrar familiares"
+                   aria-label="Cadastrar familiares"
+                   style="text-decoration: none; background: rgba(255,255,255,0.05); border: 1px solid var(--card-border); border-radius: 12px; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s;"
+                   onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="#fff" style="width: 18px; height: 18px;" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M18 7.5v3m0 0v3m0-3h3m-3 0h-3m-2.25-4.125a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0ZM3 19.235v-.11a6.375 6.375 0 0 1 12.75 0v.109A12.318 12.318 0 0 1 9.374 21c-2.331 0-4.512-.645-6.374-1.766Z" />
+                    </svg>
+                </a>
                 <a href="{{ route('extrato') }}" wire:navigate
                    title="Ver extrato de pontos"
                    aria-label="Ver extrato de pontos"
@@ -494,9 +279,14 @@ $sair = function () {
                         <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 0 0 2.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 0 0-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 0 0 .75-.75 2.25 2.25 0 0 0-.1-.664m-5.8 0A2.251 2.251 0 0 1 13.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25Z" />
                     </svg>
                 </a>
-                <div wire:click="$toggle('exibirModalRecompensas')" class="glass-card" style="margin: 0; padding: 6px 14px; border-radius: 12px; display: flex; align-items: center; gap: 8px; cursor: pointer; transition: transform 0.1s;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+                <a href="{{ route('loja', ['filho' => $idUsuarioSelecionado]) }}" wire:navigate
+                   aria-label="Abrir loja de recompensas"
+                   title="Loja de recompensas"
+                   class="glass-card"
+                   style="text-decoration: none; color: var(--text-primary); margin: 0; padding: 6px 14px; border-radius: 12px; display: flex; align-items: center; gap: 8px; cursor: pointer; transition: transform 0.1s;"
+                   onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
                     <span style="font-size: 0.9rem; font-weight: 600;">🪙 {{ $usuarioSelecionado->balance }}</span>
-                </div>
+                </a>
                 <button wire:click="sair" class="btn-primary" style="background: #ef4444; font-size: 0.85rem; padding: 6px 12px; box-shadow: none;">Sair</button>
             </div>
         @endif
@@ -515,19 +305,20 @@ $sair = function () {
                 </h3>
                 @if(auth()->check() && in_array(auth()->user()->role->value, ['P', 'M']))
                     <div style="display: flex; gap: 8px; align-items: center;">
-                        <button type="button"
-                                wire:click="abrirModalPlaylists"
-                                title="Playlists Sugeridas de Missões"
-                                style="background: rgba(168, 85, 247, 0.15); border: 1px solid #a855f7; border-radius: 8px; padding: 6px 12px; display: flex; align-items: center; gap: 6px; cursor: pointer; color: #c084fc; font-size: 0.85rem; font-weight: 600; transition: all 0.2s;">
-                            <span>💡</span> Playlists
-                        </button>
-                        <button wire:click="$toggle('exibirSecaoNovaMissao')"
-                                title="{{ $exibirSecaoNovaMissao ? 'Ocultar Cadastro' : 'Cadastrar Missão' }}"
-                                style="background: {{ $exibirSecaoNovaMissao ? 'rgba(168, 85, 247, 0.2)' : 'rgba(255,255,255,0.05)' }}; border: 1px solid {{ $exibirSecaoNovaMissao ? '#a855f7' : 'var(--card-border)' }}; border-radius: 8px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s;">
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="{{ $exibirSecaoNovaMissao ? '#c084fc' : '#fff' }}" style="width: 16px; height: 16px;">
+                        <a href="{{ route('missoes', ['filho' => $idUsuarioSelecionado]) }}" wire:navigate
+                           title="Playlists Sugeridas de Missões"
+                           aria-label="Abrir playlists de missões"
+                           style="text-decoration: none; background: rgba(168, 85, 247, 0.15); border: 1px solid #a855f7; border-radius: 8px; padding: 6px 12px; display: flex; align-items: center; gap: 6px; cursor: pointer; color: #c084fc; font-size: 0.85rem; font-weight: 600; transition: all 0.2s;">
+                            <span aria-hidden="true">💡</span> Playlists
+                        </a>
+                        <a href="{{ route('missoes', ['filho' => $idUsuarioSelecionado]) }}" wire:navigate
+                           title="Cadastrar nova missão"
+                           aria-label="Cadastrar nova missão"
+                           style="text-decoration: none; background: rgba(255,255,255,0.05); border: 1px solid var(--card-border); border-radius: 8px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s;">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="#fff" style="width: 16px; height: 16px;" aria-hidden="true">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
                             </svg>
-                        </button>
+                        </a>
                     </div>
                 @endif
             </div>
@@ -609,96 +400,6 @@ $sair = function () {
         </div>
     @endif
 
-    <!-- Modal / Seção de Recompensas -->
-    @if($exibirModalRecompensas)
-        <div style="padding: 0 15px; margin-bottom: 15px;">
-            <div class="glass-card" style="margin: 0; border: 2px solid #a855f7;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                    <h3 style="font-size: 1.2rem; font-weight: 800; color: #c084fc; margin: 0;">Loja de Recompensas 🎁</h3>
-                    <button wire:click="$toggle('exibirModalRecompensas')" style="background: none; border: none; color: var(--text-secondary); cursor: pointer; font-size: 1.2rem;">&times;</button>
-                </div>
-
-                @if(count($recompensas) === 0)
-                    <p style="font-size: 0.9rem; color: var(--text-secondary); text-align: center; margin-bottom: 15px;">
-                        Nenhuma recompensa cadastrada.
-                    </p>
-                @else
-                    <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px;">
-                        @foreach($recompensas as $recompensa)
-                            <div style="background: rgba(0,0,0,0.2); border: 1px solid var(--card-border); border-radius: 10px; padding: 12px; display: flex; justify-content: space-between; align-items: center;">
-                                <div>
-                                    <h4 style="font-size: 1rem; font-weight: 700; margin-bottom: 4px;">{{ $recompensa->description }}</h4>
-                                    <span style="font-size: 0.85rem; color: #fbbf24; font-weight: 600;">
-                                        🪙 {{ $recompensa->cost }} moedas
-                                    </span>
-                                </div>
-                                <div style="display: flex; align-items: center; gap: 8px;">
-                                    @if(auth()->check() && in_array(auth()->user()->role->value, ['P', 'M']))
-                                        <button wire:click="excluirRecompensa('{{ $recompensa->id }}')" style="background: rgba(239, 68, 68, 0.2); border: none; color: #f87171; width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; cursor: pointer;" title="Excluir Recompensa" onclick="confirm('Excluir recompensa?') || event.stopImmediatePropagation()">
-                                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" style="width: 16px; height: 16px;">
-                                                <path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
-                                            </svg>
-                                        </button>
-                                    @endif
-                                    <button wire:click="resgatarRecompensa('{{ $recompensa->id }}')" class="btn-primary" style="background: var(--accent); font-size: 0.85rem; padding: 6px 12px; box-shadow: none;">
-                                        Resgatar
-                                    </button>
-                                </div>
-                            </div>
-                        @endforeach
-                    </div>
-                @endif
-
-                @if(auth()->check() && in_array(auth()->user()->role->value, ['P', 'M']))
-                    <div style="border-top: 1px solid var(--card-border); padding-top: 15px;">
-                        <h4 style="font-size: 0.95rem; margin-bottom: 10px; color: #e2e8f0;">Adicionar Recompensa (Pais)</h4>
-                        <form wire:submit.prevent="adicionarRecompensa" style="display: flex; gap: 8px;">
-                            <input type="text" wire:model="descricaoNovaRecompensa" placeholder="Ex: Sorvete" style="flex: 2; background: rgba(0,0,0,0.2); border: 1px solid var(--card-border); border-radius: 8px; padding: 8px; color: #fff; font-size: 0.85rem;" required>
-                            <input type="number" wire:model="custoNovaRecompensa" placeholder="Valor" style="flex: 1; background: rgba(0,0,0,0.2); border: 1px solid var(--card-border); border-radius: 8px; padding: 8px; color: #fff; font-size: 0.85rem;" required>
-                            <button type="submit" class="btn-primary" style="background: #a855f7; padding: 8px 12px; font-size: 0.85rem; box-shadow: none;">+</button>
-                        </form>
-                    </div>
-                @endif
-            </div>
-        </div>
-    @endif
-
-    <!-- Painel dos Pais (Notificar e Convidar) -->
-    @if(auth()->check() && in_array(auth()->user()->role->value, ['P', 'M']) && $exibirSecaoNovaMissao)
-        <div style="padding: 0 15px; margin-bottom: 15px;">
-            <div class="glass-card" style="margin: 0;">
-                <h3 style="font-size: 1.1rem; margin-bottom: 12px; color: #c084fc;">Novas missões</h3>
-                <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 12px;">
-                    Adicione uma nova tarefa rápida para notificar imediatamente as crianças com aviso em texto e sinal sonoro!
-                </p>
-                <div style="background: rgba(168, 85, 247, 0.1); border: 1px dashed rgba(168, 85, 247, 0.5); border-radius: 10px; padding: 10px 12px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; gap: 10px;">
-                    <div>
-                        <div style="font-size: 0.85rem; font-weight: 700; color: #e9d5ff;">Sem ideias para novas missões?</div>
-                        <div style="font-size: 0.8rem; color: var(--text-secondary);">Use uma lista pronta baseada na idade do seu filho.</div>
-                    </div>
-                    <button type="button" wire:click="abrirModalPlaylists" class="btn-primary" style="background: #a855f7; font-size: 0.8rem; padding: 6px 12px; white-space: nowrap; box-shadow: none;">
-                        Ver Playlists 🎵
-                    </button>
-                </div>
-                <form wire:submit.prevent="adicionarTarefaRapida" style="display: flex; flex-direction: column; gap: 10px;">
-                    <input type="text" wire:model="descricaoNovaTarefa" placeholder="Ex: Escovar os dentes" style="background: rgba(0,0,0,0.2); border: 1px solid var(--card-border); border-radius: 8px; padding: 10px; color: #fff; font-family: inherit;" required>
-                    <input type="number" wire:model="moedasNovaTarefa" placeholder="Quantas moedas vale? Ex: 10" style="background: rgba(0,0,0,0.2); border: 1px solid var(--card-border); border-radius: 8px; padding: 10px; color: #fff; font-family: inherit;" required>
-                    <select wire:model="diaNovaTarefa" onchange="this.style.color = this.value === '' ? '#9ca3af' : '#fff'" style="background: rgba(0,0,0,0.2); border: 1px solid var(--card-border); border-radius: 8px; padding: 10px; color: {{ empty($diaNovaTarefa) ? '#9ca3af' : '#fff' }}; font-family: inherit; outline: none; cursor: pointer;">
-                        <option value="" style="color: #9ca3af;" disabled selected hidden>Um dia específico?</option>
-                        <option value="Segunda" style="color: #000;">Segunda</option>
-                        <option value="Terça" style="color: #000;">Terça</option>
-                        <option value="Quarta" style="color: #000;">Quarta</option>
-                        <option value="Quinta" style="color: #000;">Quinta</option>
-                        <option value="Sexta" style="color: #000;">Sexta</option>
-                        <option value="Sábado" style="color: #000;">Sábado</option>
-                        <option value="Domingo" style="color: #000;">Domingo</option>
-                    </select>
-                    <button type="submit" class="btn-primary" style="background: #a855f7;">Salvar</button>
-                </form>
-            </div>
-        </div>
-    @endif
-
     <!-- Missões do Dia -->
     @if($usuarioSelecionado)
         <div style="padding: 0 15px;">
@@ -712,9 +413,9 @@ $sair = function () {
                         <p style="font-size: 0.85rem; color: var(--text-secondary); max-width: 380px; margin: 0 auto 16px;">
                             Que tal uma playlist da nossa comunidade com missões recomendada para a idade de {{ $usuarioSelecionado->name }}?
                         </p>
-                        <button type="button" wire:click="abrirModalPlaylists" class="btn-primary" style="background: #a855f7; display: inline-flex; align-items: center; gap: 6px; padding: 10px 20px; font-size: 0.9rem;">
-                            <span>🎧</span> Explorar Playlists de Missões
-                        </button>
+                        <a href="{{ route('missoes', ['filho' => $idUsuarioSelecionado]) }}" wire:navigate class="btn-primary" style="text-decoration: none; background: #a855f7; display: inline-flex; align-items: center; gap: 6px; padding: 10px 20px; font-size: 0.9rem;" aria-label="Explorar playlists de missões">
+                            <span aria-hidden="true">🎧</span> Explorar Playlists de Missões
+                        </a>
                     @else
                         Selecione seu filho ou filha
                     @endif
@@ -766,193 +467,6 @@ $sair = function () {
                     </div>
                 @endforeach
             @endif
-        </div>
-    @endif
-
-    <!-- Modal de Playlists de Missões Sugeridas (Design Nativo da Aplicação) -->
-    @if($exibirModalPlaylists)
-        <div style="position: fixed; inset: 0; z-index: 1000; background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); display: flex; align-items: center; justify-content: center; padding: 15px;">
-            @php
-                $playlistAtiva = PlaylistMissao::tryFrom($playlistSelecionada) ?? PlaylistMissao::EXPLORADORES_ROTINA;
-                $todasPlaylists = PlaylistMissao::cases();
-                $idadeFilho = $usuarioSelecionado?->obterIdade();
-                $totalMissoesAtiva = count($playlistAtiva->missoes());
-                $todasMarcadas = count($missoesSugeridasSelecionadas) === $totalMissoesAtiva;
-                $basesTerapeuticas = PlaylistMissao::basesTerapeuticas();
-            @endphp
-
-            <div class="glass-card" style="margin: 0; border: 2px solid #a855f7; width: 100%; max-width: 480px; max-height: 88vh; overflow-y: auto; display: flex; flex-direction: column; gap: 14px; box-shadow: 0 20px 50px rgba(0,0,0,0.6);" role="dialog" aria-modal="true" aria-labelledby="tituloModalPlaylists">
-                <!-- Cabeçalho do Modal -->
-                <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-                    <div>
-                        <div style="display: flex; align-items: center; gap: 8px;">
-                            <span style="font-size: 1.4rem;" aria-hidden="true">🎧</span>
-                            <h3 id="tituloModalPlaylists" style="font-size: 1.2rem; font-weight: 800; color: #c084fc; margin: 0;">Playlists de Missões</h3>
-                        </div>
-                        <p style="font-size: 0.82rem; color: #cbd5e1; margin-top: 4px;">
-                            @if($usuarioSelecionado && in_array($usuarioSelecionado->role->value, ['S', 'D']))
-                                Sugestões para <strong>{{ $usuarioSelecionado->name }}</strong>
-                                @if($idadeFilho !== null) ({{ $idadeFilho }} anos) @endif
-                            @else
-                                Toque em uma playlist para ver e selecionar as tarefas:
-                            @endif
-                        </p>
-                    </div>
-                    <button type="button"
-                            wire:click="$set('exibirModalPlaylists', false)"
-                            style="background: none; border: none; color: #cbd5e1; cursor: pointer; font-size: 1.4rem; line-height: 1; padding: 0 4px;"
-                            title="Fechar modal de playlists"
-                            aria-label="Fechar modal de playlists">&times;</button>
-                </div>
-
-                <!-- Destaque das Bases Terapêuticas e de Desenvolvimento -->
-                <div style="background: rgba(168, 85, 247, 0.12); border: 1px solid rgba(168, 85, 247, 0.35); border-radius: 12px; padding: 12px; display: flex; flex-direction: column; gap: 8px;">
-                    <div style="display: flex; align-items: center; gap: 8px;">
-                        <span style="font-size: 1.15rem;" aria-hidden="true">🌱</span>
-                        <h4 style="font-size: 0.85rem; font-weight: 700; color: #d8b4fe; margin: 0;">
-                            Fundamentação Terapêutica & Desenvolvimento
-                        </h4>
-                    </div>
-                    <p style="font-size: 0.76rem; color: #f1f5f9; line-height: 1.45; margin: 0;">
-                        As atividades e faixas etárias são fundamentadas em referenciais clínicos e pedagógicos de desenvolvimento infantil e autonomia:
-                    </p>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 2px;">
-                        @foreach($basesTerapeuticas as $base)
-                            <div style="background: rgba(0, 0, 0, 0.3); border: 1px solid rgba(168, 85, 247, 0.25); border-radius: 8px; padding: 6px 8px;">
-                                <strong style="display: block; font-size: 0.72rem; color: #c084fc;">{{ $base['sigla'] }}</strong>
-                                <span style="font-size: 0.68rem; color: #cbd5e1; line-height: 1.3; display: block;">{{ $base['descricao'] }}</span>
-                            </div>
-                        @endforeach
-                    </div>
-                </div>
-
-                <!-- Lista de Playlists em Accordion Expansível -->
-                <div style="display: flex; flex-direction: column; gap: 10px;">
-                    @foreach($todasPlaylists as $pl)
-                        @php
-                            $estaExpandida = $playlistSelecionada === $pl->value;
-                            $missoesDaPlaylist = $pl->missoes();
-                            $totalMissoes = count($missoesDaPlaylist);
-
-                            $selecionadasDestaPlaylist = 0;
-                            foreach(range(0, $totalMissoes - 1) as $idx) {
-                                if (in_array("{$pl->value}_{$idx}", $missoesSugeridasSelecionadas)) {
-                                    $selecionadasDestaPlaylist++;
-                                }
-                            }
-                            $todasDestaMarcadas = $selecionadasDestaPlaylist === $totalMissoes;
-                        @endphp
-
-                        <div style="background: {{ $estaExpandida ? 'rgba(168, 85, 247, 0.12)' : 'rgba(0, 0, 0, 0.25)' }}; border: 1px solid {{ $estaExpandida ? '#a855f7' : 'var(--card-border)' }}; border-radius: 14px; overflow: hidden; transition: all 0.2s;">
-
-                            <!-- Cabeçalho Clicável da Playlist -->
-                            <div wire:click="alternarExpansaoPlaylist('{{ $pl->value }}')"
-                                 style="padding: 12px 14px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; gap: 10px; user-select: none;">
-                                <div style="display: flex; align-items: center; gap: 10px;">
-                                    <span style="font-size: 1.3rem;" aria-hidden="true">{{ $pl->icone() }}</span>
-                                    <div>
-                                        <div style="font-size: 0.92rem; font-weight: 700; color: {{ $estaExpandida ? '#c084fc' : '#f8fafc' }};">
-                                            {{ $pl->titulo() }}
-                                        </div>
-                                        <div style="display: flex; align-items: center; gap: 8px; margin-top: 2px;">
-                                            <span style="font-size: 0.72rem; color: #cbd5e1; background: rgba(255,255,255,0.08); padding: 1px 6px; border-radius: 4px;">
-                                                {{ $pl->faixaEtaria() }}
-                                            </span>
-                                            <span style="font-size: 0.72rem; color: #cbd5e1;">
-                                                {{ $totalMissoes }} tarefas
-                                            </span>
-                                            @if($selecionadasDestaPlaylist > 0)
-                                                <span style="font-size: 0.72rem; color: #d8b4fe; font-weight: 600; background: rgba(168, 85, 247, 0.25); padding: 1px 6px; border-radius: 4px;">
-                                                    {{ $selecionadasDestaPlaylist }} marcadas
-                                                </span>
-                                            @endif
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div style="display: flex; align-items: center; gap: 6px;">
-                                    <span style="color: #cbd5e1; font-size: 0.75rem; transition: transform 0.2s; display: inline-block; transform: {{ $estaExpandida ? 'rotate(180deg)' : 'rotate(0deg)' }};" aria-hidden="true">
-                                        ▼
-                                    </span>
-                                </div>
-                            </div>
-
-                            <!-- Tarefas da Playlist (Expandidas Abaixo Dela) -->
-                            @if($estaExpandida)
-                                <div style="padding: 0 14px 14px 14px; border-top: 1px solid rgba(255, 255, 255, 0.06); margin-top: 4px; padding-top: 12px;">
-                                    <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; margin-bottom: 8px;">
-                                        <p style="font-size: 0.78rem; color: #cbd5e1; margin: 0; line-height: 1.35;">
-                                            {{ $pl->descricao() }}
-                                        </p>
-                                        <button type="button"
-                                                wire:click="alternarTodasMissoesDaPlaylist('{{ $pl->value }}')"
-                                                style="background: none; border: none; color: #c084fc; font-size: 0.78rem; font-weight: 600; cursor: pointer; white-space: nowrap; padding-left: 6px;"
-                                                aria-label="{{ $todasDestaMarcadas ? 'Desmarcar todas as tarefas desta playlist' : 'Marcar todas as tarefas desta playlist' }}">
-                                            {{ $todasDestaMarcadas ? 'Desmarcar' : 'Marcar todas' }}
-                                        </button>
-                                    </div>
-
-                                    <!-- Base Terapêutica Específica da Playlist -->
-                                    <div style="background: rgba(168, 85, 247, 0.1); border-left: 3px solid #a855f7; border-radius: 6px; padding: 6px 10px; margin-bottom: 10px;">
-                                        <span style="font-size: 0.72rem; color: #e2e8f0; line-height: 1.35; display: block;">
-                                            <strong style="color: #c084fc;">Base Terapêutica:</strong> {{ $pl->baseTerapeutica() }}
-                                        </span>
-                                    </div>
-
-                                    <!-- Lista de Tarefas Inline -->
-                                    <div style="display: flex; flex-direction: column; gap: 8px;">
-                                        @foreach($missoesDaPlaylist as $indice => $missao)
-                                            @php
-                                                $chave = "{$pl->value}_{$indice}";
-                                                $marcada = in_array($chave, $missoesSugeridasSelecionadas);
-                                            @endphp
-                                            <div wire:click="alternarSelecaoMissao('{{ $chave }}')"
-                                                 style="background: {{ $marcada ? 'rgba(168, 85, 247, 0.18)' : 'rgba(0, 0, 0, 0.2)' }}; border: 1px solid {{ $marcada ? '#a855f7' : 'var(--card-border)' }}; border-radius: 10px; padding: 10px 12px; display: flex; justify-content: space-between; align-items: center; gap: 10px; cursor: pointer; transition: all 0.15s;">
-                                                <div style="display: flex; align-items: center; gap: 10px;">
-                                                    <input type="checkbox"
-                                                           {{ $marcada ? 'checked' : '' }}
-                                                           style="cursor: pointer; accent-color: #a855f7; width: 16px; height: 16px; pointer-events: none;" />
-                                                    <span style="font-size: 0.85rem; font-weight: 500; color: {{ $marcada ? '#f8fafc' : 'var(--text-secondary)' }};">
-                                                        {{ $missao['descricao'] }}
-                                                    </span>
-                                                </div>
-                                                <div style="display: flex; align-items: center; gap: 6px; flex-shrink: 0;">
-                                                    @if(!empty($missao['dia']))
-                                                        <span style="font-size: 0.72rem; color: var(--text-secondary); background: rgba(255,255,255,0.06); padding: 2px 6px; border-radius: 6px;">
-                                                            📅 {{ $missao['dia'] }}
-                                                        </span>
-                                                    @endif
-                                                    <span style="font-size: 0.82rem; color: #818cf8; font-weight: 600; background: rgba(129, 140, 248, 0.15); padding: 2px 8px; border-radius: 8px;">
-                                                        🪙 +{{ $missao['moedas'] }}
-                                                    </span>
-                                                </div>
-                                            </div>
-                                        @endforeach
-                                    </div>
-                                </div>
-                            @endif
-
-                        </div>
-                    @endforeach
-                </div>
-
-                <!-- Rodapé com Ações -->
-                <div style="display: flex; gap: 10px; border-top: 1px solid var(--card-border); padding-top: 10px;">
-                    <button type="button"
-                            wire:click="$set('exibirModalPlaylists', false)"
-                            class="btn-primary"
-                            style="flex: 1; background: rgba(255, 255, 255, 0.05); border: 1px solid var(--card-border); color: var(--text-secondary); box-shadow: none; font-size: 0.85rem; padding: 10px;">
-                        Cancelar
-                    </button>
-                    <button type="button"
-                            wire:click="adicionarMissoesSugeridas"
-                            class="btn-primary"
-                            style="flex: 2; background: #a855f7; box-shadow: 0 4px 12px rgba(168, 85, 247, 0.35); font-size: 0.85rem; padding: 10px; opacity: {{ count($missoesSugeridasSelecionadas) === 0 ? '0.5' : '1' }};"
-                            {{ count($missoesSugeridasSelecionadas) === 0 ? 'disabled' : '' }}>
-                        ➕ Adicionar à Rotina ({{ count($missoesSugeridasSelecionadas) }})
-                    </button>
-                </div>
-            </div>
         </div>
     @endif
 
