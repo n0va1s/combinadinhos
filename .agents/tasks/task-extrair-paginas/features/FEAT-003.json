@@ -1,0 +1,28 @@
+{
+  "id": "FEAT-003",
+  "type": "feat",
+  "description": "Criar a página própria /missoes (resources/views/livewire/missoes.blade.php) extraindo a funcionalidade de Playlists Sugeridas (modal 'exibirModalPlaylists') E a criação avulsa de missão (seção 'exibirSecaoNovaMissao' / adicionarTarefaRapida) que hoje vivem no dashboard. Lê o filho via ?filho= usando a Action da FEAT-001. Depende de FEAT-001; independente de FEAT-002.",
+  "status": "pending",
+  "steps": [
+    "Criar resources/views/livewire/missoes.blade.php como Volt full-page. Bloco PHP: use App\\Models\\Mission; use App\\Enums\\PlaylistMissao; use App\\Services\\MissaoSugeridaService; use App\\Actions\\ResolverFilhoSelecionado; use function Livewire\\Volt\\{state, mount, layout}; layout('layouts.app');",
+    "state([...]): 'filho'=>null, 'ehResponsavel'=>false, 'precisaSelecionar'=>false, 'exibirSecaoNovaMissao'=>false, 'descricaoNovaTarefa'=>'', 'moedasNovaTarefa'=>'', 'diaNovaTarefa'=>'', 'playlistSelecionada'=>PlaylistMissao::EXPLORADORES_ROTINA->value, 'missoesSugeridasSelecionadas'=>[].",
+    "mount(function (ResolverFilhoSelecionado $resolver){ if(!auth()->check()) return; $resultado = $resolver->executar(request()->query('filho')); $this->filho=$resultado['filho']; $this->ehResponsavel=$resultado['ehResponsavel']; $this->precisaSelecionar=$resultado['precisaSelecionar']; if($this->filho){ $idade=$this->filho->obterIdade(); $playlistPadrao=PlaylistMissao::porIdade($idade); $this->playlistSelecionada=$playlistPadrao->value; $chaves=[]; foreach($playlistPadrao->missoes() as $indice=>$missao){ $chaves[]=\"{$playlistPadrao->value}_{$indice}\"; } $this->missoesSugeridasSelecionadas=$chaves; } });",
+    "Mover handlers (adaptando usuarioSelecionado -> filho): adicionarTarefaRapida (cria Mission com description/coins/day/user_id a partir de descricaoNovaTarefa/moedasNovaTarefa/diaNovaTarefa, limpa os campos; sem carregarMissoes — a lista do dia fica no dashboard; emitir \\Flux::toast de sucesso); alternarExpansaoPlaylist(valorPlaylist); alternarSelecaoMissao(chaveMissao); alternarTodasMissoesDaPlaylist(valorPlaylist); adicionarMissoesSugeridas(MissaoSugeridaService $servicoMissoes) — manter verbatim-equivalente: exige filho S/D, monta $missoesParaAdicionar varrendo PlaylistMissao::cases() e missoesSugeridasSelecionadas, chama $servicoMissoes->vincularMissoesAoUsuario($this->filho, $missoesParaAdicionar), emite toast de sucesso; tratar casos de aviso (nenhuma missão selecionada / filho não selecionado) com \\Flux::toast variant 'warning'.",
+    "Markup: header no padrão do extrato (link voltar route('dashboard') wire:navigate + <span class=header-logo>Novas Missões 🎯</span>, aria-label 'Voltar ao painel'). Seção de criação avulsa de missão reaproveitando o form de 'adicionarTarefaRapida' do dashboard (inputs descricao/moedas/dia). Lista de playlists em accordion reaproveitando o markup do modal '<!-- Modal de Playlists de Missões Sugeridas -->' do dashboard, PORÉM renderizada como conteúdo da página (remover o overlay 'position: fixed; inset:0; z-index:1000' e o role=dialog/aria-modal; usar glass-card comum). Manter o accordion (alternarExpansaoPlaylist), checkboxes (alternarSelecaoMissao), 'Marcar todas' (alternarTodasMissoesDaPlaylist), as bases terapêuticas (PlaylistMissao::basesTerapeuticas()) e o rodapé com botão 'Adicionar à Rotina' (adicionarMissoesSugeridas) desabilitado quando nenhuma marcada.",
+    "Estado responsável sem filho: quando $precisaSelecionar for true, exibir aviso acessível (glass-card) 'Selecione um filho no painel' com link wire:navigate ao dashboard; não renderizar os formulários/accordion nesse caso.",
+    "Acessibilidade WCAG AAA (aria-labels, foco visível, contraste, checkboxes operáveis por teclado — ao converter de modal, garantir que os itens clicáveis tenham role/para teclado adequados ou usar inputs reais). Textos pt-BR via __() onde padronizado. Variáveis pt-BR camelCase."
+  ],
+  "acceptance_criteria": [
+    "Acessar /missoes?filho=<id> logado como pai mostra, para aquele filho, o formulário de nova missão avulsa e o accordion de playlists com pré-seleção por idade; adicionar à rotina cria as missões via MissaoSugeridaService.",
+    "Sem ?filho= válido (pai), mostra o aviso 'Selecione um filho no painel' com link ao dashboard; logado como filho usa o próprio usuário.",
+    "O accordion de playlists não é mais um overlay fixo/modal, e sim conteúdo da página; funcionalidade de marcar/desmarcar e 'Adicionar à Rotina' preservada.",
+    "A página usa layout('layouts.app') e header no padrão do extrato."
+  ],
+  "verification": [
+    "npm run build sai com código 0.",
+    "php artisan route:list mostra a rota 'missoes'.",
+    "php artisan test continua passando (incluindo MissaoSugeridaServiceTest e PlaylistMissaoTest)."
+  ],
+  "blocked_reason": null,
+  "findings": ""
+}

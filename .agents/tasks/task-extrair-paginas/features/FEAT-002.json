@@ -1,0 +1,28 @@
+{
+  "id": "FEAT-002",
+  "type": "feat",
+  "description": "Criar a página própria /loja (resources/views/livewire/loja.blade.php) extraindo TODA a funcionalidade da Loja de Recompensas que hoje vive no modal 'exibirModalRecompensas' do dashboard: listar recompensas, resgatar (lógica de saldo/Transaction/aprovação idêntica), adicionar e excluir (somente pais). Lê o filho via ?filho= usando a Action da FEAT-001. Depende de FEAT-001.",
+  "status": "pending",
+  "steps": [
+    "Criar resources/views/livewire/loja.blade.php como Volt full-page. Bloco PHP: use App\\Models\\Reward; use App\\Models\\Transaction; use App\\Enums\\TransactionStatus; use App\\Actions\\ResolverFilhoSelecionado; use function Livewire\\Volt\\{state, mount, layout}; layout('layouts.app');",
+    "state([...]): 'filho'=>null, 'ehResponsavel'=>false, 'precisaSelecionar'=>false, 'recompensas'=>[], 'descricaoNovaRecompensa'=>'', 'custoNovaRecompensa'=>''.",
+    "mount(function (ResolverFilhoSelecionado $resolver) { if(!auth()->check()) return; $resultado = $resolver->executar(request()->query('filho')); $this->filho = $resultado['filho']; $this->ehResponsavel = $resultado['ehResponsavel']; $this->precisaSelecionar = $resultado['precisaSelecionar']; if($this->filho){ $this->carregarRecompensas(); } });",
+    "Mover os handlers do dashboard (adaptando usuarioSelecionado -> filho): carregarRecompensas (Reward::where('user_id',$this->filho->id)->orderBy('cost','asc')->get()); adicionarRecompensa (parents-only na prática — form só aparece para pais; cria Reward e \\Flux::toast variant 'success'); resgatarRecompensa($idRecompensa) — MANTER verbatim-equivalente a lógica atual: se responsável, debita balance, cria Transaction APROVADO (action 'Resgatou'), recarrega o filho do banco (User::find) e emite toast + dispatch('play-task-alert',['sound'=>'applause']); se filho, valida saldo (toast 'danger' se insuficiente) e cria Transaction PENDENTE (action 'Resgate', detail 'Aguardando Aprovação (Resgate): ...') com toast 'info'. Como não há mais carregarUsuarios aqui, após debitar recarregue o filho via User::find($this->filho->id) e reatribua $this->filho; excluirRecompensa($idRecompensa) (parents-only, delete + carregarRecompensas).",
+    "Markup: header no padrão do extrato — <a href=route('dashboard') wire:navigate ...> com SVG de voltar + <span class=header-logo>Loja de Recompensas 🎁</span>, e aria-label 'Voltar ao painel'. Reaproveitar o markup de listagem/resgate/adicionar/excluir do modal atual do dashboard (bloco '<!-- Modal / Seção de Recompensas -->'), removendo o cabeçalho de modal e o botão de fechar (&times;). Mostrar botões de excluir/adicionar apenas quando auth()->user()->role->value in ['P','M'].",
+    "Estado responsável sem filho: quando $precisaSelecionar for true, exibir um aviso acessível (glass-card) com texto 'Selecione um filho no painel' e um link <a href=route('dashboard') wire:navigate> de volta, com aria-label adequado; não renderizar a lista de recompensas nesse caso.",
+    "Acessibilidade WCAG AAA: aria-labels em botões de ícone, foco visível, contraste; manter os emojis como aria-hidden quando decorativos. Textos pt-BR (usar __() onde houver chave padronizada; literais pt-BR aceitáveis como no restante do app). Variáveis pt-BR camelCase."
+  ],
+  "acceptance_criteria": [
+    "Acessar /loja?filho=<id> logado como pai mostra a Loja de Recompensas (listar/resgatar/adicionar/excluir) para aquele filho; sem ?filho= válido mostra o aviso 'Selecione um filho no painel' com link ao dashboard.",
+    "Logado como filho (S/D), /loja ignora a URL e usa o próprio usuário.",
+    "A lógica de resgate preserva o comportamento atual (pai aprova direto e debita saldo; filho gera transação PENDENTE; saldo insuficiente bloqueia com toast), incluindo toasts e som de aplausos.",
+    "A página usa layout('layouts.app') e o header no padrão do extrato."
+  ],
+  "verification": [
+    "npm run build sai com código 0.",
+    "php artisan route:list mostra a rota 'loja'.",
+    "php artisan test continua passando."
+  ],
+  "blocked_reason": null,
+  "findings": ""
+}

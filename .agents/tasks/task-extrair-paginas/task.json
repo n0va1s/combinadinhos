@@ -1,0 +1,7 @@
+{
+  "task_id": "task-extrair-paginas",
+  "task_description": "Extrair as duas features que hoje são MODAIS no dashboard (Loja de Recompensas e Playlists/Novas Missões) para páginas próprias (/loja e /missoes), eliminar os modais do dashboard e alinhar a seleção de filho entre extrato, loja e missões usando a URL (?filho=) como fonte única, com o seletor permanecendo apenas no dashboard. Stack: Laravel + Livewire Volt (funcional) + Flux. Regras AGENTS.md: variáveis pt-BR camelCase, lógica pesada em Services/Actions, textos pt-BR via __(), WCAG AAA.",
+  "status": "pending",
+  "feature_order": ["FEAT-001", "FEAT-002", "FEAT-003", "FEAT-004"],
+  "blocked_reason": null
+}
