@@ -273,14 +273,29 @@ h1, h2, h3, h4 {
     color: #fca5a5 !important;
 }
 
-/* Linha de ações (link "Esqueceu a senha?" + botão) com respiro entre itens */
+/* Linha de ações do login: botão grande ocupando todo o frame e o link
+   "Esqueceu a senha?" abaixo, centralizado e com área de respiro.
+   Inverte a ordem visual (botão primeiro, link depois) sem tocar na view. */
 .auth-card .flex.items-center.justify-end {
-    gap: 14px;
-    flex-wrap: wrap;
+    display: flex;
+    flex-direction: column-reverse;
+    align-items: stretch;
+    gap: 18px;
+    margin-top: 8px;
 }
 
-/* Garante que o link não cole no botão mesmo sem a classe utilitária */
-.auth-card a + button,
-.auth-card a + .btn-primary {
-    margin-left: 4px;
+/* Botão "INICIAR SESSÃO" em largura total e maior */
+.auth-card .flex.items-center.justify-end button[type='submit'],
+.auth-card .flex.items-center.justify-end .btn-primary {
+    width: 100% !important;
+    justify-content: center !important;
+    padding: 14px 20px !important;
+    font-size: 1rem !important;
+    margin-left: 0 !important;
+}
+
+/* Link "Esqueceu a senha?" centralizado abaixo do botão, com respiro */
+.auth-card .flex.items-center.justify-end a {
+    text-align: center;
+    padding-top: 2px;
 }
