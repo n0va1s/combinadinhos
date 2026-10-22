@@ -1,59 +1,27 @@
 <?php
 
-use App\Models\User;
 use App\Models\Transaction;
 use App\Enums\TransactionStatus;
-use App\Enums\UserRole;
+use App\Actions\ResolverFilhoSelecionado;
 use function Livewire\Volt\{state, mount, computed, layout};
 
 layout('layouts.app');
 
 state([
-    'usuarios' => [],
-    'idUsuarioSelecionado' => null,
     'usuarioSelecionado' => null,
+    'precisaSelecionar' => false,
 ]);
 
-mount(function () {
+mount(function (ResolverFilhoSelecionado $resolver) {
     if (!auth()->check()) {
         return;
     }
 
-    $usuarioLogado = auth()->user();
-    $ehResponsavel = in_array($usuarioLogado->role->value, ['P', 'M']);
-
-    if ($ehResponsavel) {
-        // Pais escolhem um filho por vez; iniciamos sem seleção.
-        $this->carregarFilhos();
-        $this->idUsuarioSelecionado = null;
-        $this->usuarioSelecionado = null;
-    } else {
-        // Filhos veem apenas o próprio extrato.
-        $this->idUsuarioSelecionado = $usuarioLogado->id;
-        $this->usuarioSelecionado = $usuarioLogado;
-    }
+    // Fonte única da seleção é o dashboard, que envia o filho via ?filho= na URL.
+    $resultado = $resolver->executar(request()->query('filho'));
+    $this->usuarioSelecionado = $resultado['filho'];
+    $this->precisaSelecionar = $resultado['precisaSelecionar'];
 });
-
-$carregarFilhos = function () {
-    $usuarioLogado = auth()->user();
-
-    $consulta = User::query();
-    if ($usuarioLogado->family_id) {
-        $consulta->where('family_id', $usuarioLogado->family_id);
-    }
-
-    $this->usuarios = $consulta
-        ->whereIn('role', [UserRole::FILHO->value, UserRole::FILHA->value])
-        ->orderBy('name')
-        ->get();
-};
-
-$selecionarUsuario = function ($id) {
-    // Garante que o responsável só consulte filhos da própria família.
-    $filho = collect($this->usuarios)->firstWhere('id', $id);
-    $this->idUsuarioSelecionado = $filho?->id;
-    $this->usuarioSelecionado = $filho;
-};
 
 // Lista cronológica de transações aprovadas do usuário selecionado.
 $transacoes = computed(function () {
@@ -84,31 +52,6 @@ $transacoes = computed(function () {
             </div>
         @endif
     </div>
-
-    <!-- Seletor de filho (apenas para pais/responsáveis) -->
-    @if(auth()->check() && in_array(auth()->user()->role->value, ['P', 'M']))
-        <div class="glass-card" style="margin-top: 5px;">
-            <label for="select-filho-extrato" style="font-size: 0.85rem; color: var(--text-secondary); display: block; margin-bottom: 8px;">
-                Ver extrato de:
-            </label>
-            @if(count($usuarios) === 0)
-                <p style="font-size: 0.9rem; color: var(--text-secondary); margin: 0;">
-                    Nenhum filho ou filha cadastrado(a) na família ainda.
-                </p>
-            @else
-                <select id="select-filho-extrato"
-                        wire:change="selecionarUsuario($event.target.value)"
-                        style="width: 100%; background: rgba(15, 23, 42, 0.6); border: 1px solid var(--card-border); color: #f8fafc; padding: 10px 12px; border-radius: 12px; font-size: 0.9rem; outline: none; cursor: pointer;">
-                    <option value="" {{ !$idUsuarioSelecionado ? 'selected' : '' }}>Selecione um filho...</option>
-                    @foreach($usuarios as $usuario)
-                        <option value="{{ $usuario->id }}" {{ $idUsuarioSelecionado === $usuario->id ? 'selected' : '' }}>
-                            {{ $usuario->role->icon() }} {{ $usuario->name }}
-                        </option>
-                    @endforeach
-                </select>
-            @endif
-        </div>
-    @endif
 
     <!-- Resumo do saldo -->
     @if($usuarioSelecionado)
@@ -155,13 +98,16 @@ $transacoes = computed(function () {
                 @endforeach
             @endif
         </div>
-    @elseif(auth()->check() && in_array(auth()->user()->role->value, ['P', 'M']))
+    @elseif($precisaSelecionar)
         <div style="padding: 0 15px;">
-            <div class="glass-card" style="text-align: center; color: var(--text-secondary); margin: 15px 0; padding: 24px 16px;">
+            <div class="glass-card" role="status" style="text-align: center; color: var(--text-secondary); margin: 15px 0; padding: 24px 16px;">
                 <span style="font-size: 2.2rem; display: block; margin-bottom: 8px;" aria-hidden="true">👆</span>
-                <p style="font-size: 0.9rem; color: var(--text-secondary); margin: 0;">
-                    Selecione um filho ou filha acima para conferir o extrato.
+                <p style="font-size: 0.95rem; color: #f8fafc; margin: 0 0 16px;">
+                    Selecione um filho no painel
                 </p>
+                <a href="{{ route('dashboard') }}" wire:navigate class="btn-primary" style="text-decoration: none; display: inline-flex; align-items: center; gap: 6px; padding: 10px 20px; font-size: 0.9rem;" aria-label="Voltar ao painel">
+                    Voltar ao painel
+                </a>
             </div>
         </div>
     @endif

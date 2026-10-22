@@ -15,6 +15,14 @@ Volt::route('/extrato', 'extrato')
     ->middleware('auth')
     ->name('extrato');
 
+Volt::route('/loja', 'loja')
+    ->middleware('auth')
+    ->name('loja');
+
+Volt::route('/missoes', 'missoes')
+    ->middleware('auth')
+    ->name('missoes');
+
 require __DIR__.'/auth.php';
 
 
