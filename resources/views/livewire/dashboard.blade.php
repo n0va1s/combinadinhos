@@ -4,6 +4,7 @@ use App\Models\User;
 use App\Models\Mission;
 use App\Models\Transaction;
 use App\Enums\TransactionStatus;
+use App\Actions\ResolverFilhoSelecionado;
 use Illuminate\Support\Facades\Auth;
 use function Livewire\Volt\{state, mount, layout};
 
@@ -19,11 +20,30 @@ state([
     'transacoesPendentes' => [],
 ]);
 
-mount(function () {
+mount(function (ResolverFilhoSelecionado $resolverFilhoSelecionado) {
     if (auth()->check()) {
-        $usuario = auth()->user();
-        $this->usuarioSelecionado = $usuario;
-        $this->idUsuarioSelecionado = $usuario->id;
+        $usuarioLogado = auth()->user();
+
+        // Lê o filho vindo da URL (?filho=) para manter a seleção ao voltar de
+        // extrato/loja/missoes. A Action valida que o filho pertence à família.
+        $idFilhoDaUrl = request()->query('filho');
+        $resolucao = $resolverFilhoSelecionado->executar($idFilhoDaUrl);
+
+        if (! $resolucao['ehResponsavel']) {
+            // Filho logado (S/D) vê sempre a si mesmo.
+            $this->usuarioSelecionado = $usuarioLogado;
+            $this->idUsuarioSelecionado = $usuarioLogado->id;
+        } elseif ($resolucao['filho']) {
+            // Pai/mãe voltando com um filho válido na URL: mantém a seleção.
+            $this->usuarioSelecionado = $resolucao['filho'];
+            $this->idUsuarioSelecionado = $resolucao['filho']->id;
+        } else {
+            // Pai/mãe sem filho na URL: pré-seleciona o primeiro filho da família
+            // para facilitar o uso. Se não houver filhos, mantém o próprio responsável.
+            $primeiroFilho = collect($resolucao['filhosDaFamilia'])->first();
+            $this->usuarioSelecionado = $primeiroFilho ?? $usuarioLogado;
+            $this->idUsuarioSelecionado = $this->usuarioSelecionado->id;
+        }
     }
     $this->carregarUsuarios();
     $this->carregarMissoes(silencioso: true);
@@ -261,15 +281,6 @@ $sair = function () {
         <span class="header-logo">Combinadinhos 🤝</span>
         @if($usuarioSelecionado)
             <div style="display: flex; align-items: center; gap: 8px;">
-                <a href="{{ route('register') }}" wire:navigate
-                   title="Cadastrar familiares"
-                   aria-label="Cadastrar familiares"
-                   style="text-decoration: none; background: rgba(255,255,255,0.05); border: 1px solid var(--card-border); border-radius: 12px; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s;"
-                   onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="#fff" style="width: 18px; height: 18px;" aria-hidden="true">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M18 7.5v3m0 0v3m0-3h3m-3 0h-3m-2.25-4.125a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0ZM3 19.235v-.11a6.375 6.375 0 0 1 12.75 0v.109A12.318 12.318 0 0 1 9.374 21c-2.331 0-4.512-.645-6.374-1.766Z" />
-                    </svg>
-                </a>
                 <a href="{{ route('extrato', ['filho' => $idUsuarioSelecionado]) }}" wire:navigate
                    title="Ver extrato de pontos"
                    aria-label="Ver extrato de pontos"

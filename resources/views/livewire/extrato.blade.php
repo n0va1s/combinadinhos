@@ -40,7 +40,7 @@ $transacoes = computed(function () {
 <div class="w-full">
     <!-- Header -->
     <div class="header">
-        <a href="{{ route('dashboard') }}" wire:navigate style="text-decoration: none; display: flex; align-items: center; gap: 8px; color: var(--text-primary);" aria-label="Voltar ao painel">
+        <a href="{{ route('dashboard', $usuarioSelecionado ? ['filho' => $usuarioSelecionado->id] : []) }}" wire:navigate style="text-decoration: none; display: flex; align-items: center; gap: 8px; color: var(--text-primary);" aria-label="Voltar ao painel">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" style="width: 20px; height: 20px;" aria-hidden="true">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
             </svg>
