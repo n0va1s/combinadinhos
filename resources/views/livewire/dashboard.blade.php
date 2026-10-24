@@ -280,25 +280,59 @@ $sair = function () {
     <div class="header">
         <span class="header-logo">Combinadinhos 🤝</span>
         @if($usuarioSelecionado)
-            <div style="display: flex; align-items: center; gap: 8px;">
-                <a href="{{ route('extrato', ['filho' => $idUsuarioSelecionado]) }}" wire:navigate
-                   title="Ver extrato de pontos"
-                   aria-label="Ver extrato de pontos"
-                   style="text-decoration: none; background: rgba(255,255,255,0.05); border: 1px solid var(--card-border); border-radius: 12px; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s;"
-                   onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="#fff" style="width: 18px; height: 18px;" aria-hidden="true">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 0 0 2.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 0 0-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 0 0 .75-.75 2.25 2.25 0 0 0-.1-.664m-5.8 0A2.251 2.251 0 0 1 13.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25Z" />
-                    </svg>
-                </a>
-                <a href="{{ route('loja', ['filho' => $idUsuarioSelecionado]) }}" wire:navigate
-                   aria-label="Abrir loja de recompensas"
-                   title="Loja de recompensas"
-                   class="glass-card"
-                   style="text-decoration: none; color: var(--text-primary); margin: 0; padding: 6px 14px; border-radius: 12px; display: flex; align-items: center; gap: 8px; cursor: pointer; transition: transform 0.1s;"
-                   onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
-                    <span style="font-size: 0.9rem; font-weight: 600;">🪙 {{ $usuarioSelecionado->balance }}</span>
-                </a>
-                <button wire:click="sair" class="btn-primary" style="background: #ef4444; font-size: 0.85rem; padding: 6px 12px; box-shadow: none;">Sair</button>
+            <div class="flex items-center gap-3">
+                {{-- Indicador de saldo (status, não é link) --}}
+                <div class="glass-card flex items-center gap-1.5"
+                     style="margin: 0; padding: 6px 12px; border-radius: 12px;"
+                     role="status"
+                     aria-label="Saldo atual de {{ $usuarioSelecionado->balance }} moedas">
+                    <span aria-hidden="true">🪙</span>
+                    <span class="text-sm font-semibold">{{ $usuarioSelecionado->balance }}</span>
+                </div>
+
+                {{-- Grupo de navegação: extrato, playlists, loja --}}
+                <flux:button.group aria-label="Ações de navegação">
+                    <flux:button
+                        :href="route('extrato', ['filho' => $idUsuarioSelecionado])"
+                        wire:navigate
+                        icon="document-text"
+                        variant="ghost"
+                        size="sm"
+                        square
+                        aria-label="Ver extrato de pontos"
+                        tooltip="Ver extrato de pontos" />
+
+                    @if(auth()->check() && in_array(auth()->user()->role->value, ['P', 'M']))
+                        <flux:button
+                            :href="route('missoes', ['filho' => $idUsuarioSelecionado])"
+                            wire:navigate
+                            icon="musical-note"
+                            variant="ghost"
+                            size="sm"
+                            square
+                            aria-label="Abrir playlists de missões"
+                            tooltip="Playlists de missões" />
+                    @endif
+
+                    <flux:button
+                        :href="route('loja', ['filho' => $idUsuarioSelecionado])"
+                        wire:navigate
+                        icon="shopping-bag"
+                        variant="ghost"
+                        size="sm"
+                        square
+                        aria-label="Abrir loja de recompensas"
+                        tooltip="Loja de recompensas" />
+                </flux:button.group>
+
+                {{-- Ação de saída (destrutiva, separada) --}}
+                <flux:button
+                    wire:click="sair"
+                    variant="danger"
+                    size="sm"
+                    aria-label="Sair da conta">
+                    Sair
+                </flux:button>
             </div>
         @endif
     </div>
@@ -315,22 +349,15 @@ $sair = function () {
                     @endif
                 </h3>
                 @if(auth()->check() && in_array(auth()->user()->role->value, ['P', 'M']))
-                    <div style="display: flex; gap: 8px; align-items: center;">
-                        <a href="{{ route('missoes', ['filho' => $idUsuarioSelecionado]) }}" wire:navigate
-                           title="Playlists Sugeridas de Missões"
-                           aria-label="Abrir playlists de missões"
-                           style="text-decoration: none; background: rgba(168, 85, 247, 0.15); border: 1px solid #a855f7; border-radius: 8px; padding: 6px 12px; display: flex; align-items: center; gap: 6px; cursor: pointer; color: #c084fc; font-size: 0.85rem; font-weight: 600; transition: all 0.2s;">
-                            <span aria-hidden="true">💡</span> Playlists
-                        </a>
-                        <a href="{{ route('missoes', ['filho' => $idUsuarioSelecionado]) }}" wire:navigate
-                           title="Cadastrar nova missão"
-                           aria-label="Cadastrar nova missão"
-                           style="text-decoration: none; background: rgba(255,255,255,0.05); border: 1px solid var(--card-border); border-radius: 8px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s;">
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="#fff" style="width: 16px; height: 16px;" aria-hidden="true">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-                            </svg>
-                        </a>
-                    </div>
+                    <flux:button
+                        :href="route('missoes', ['filho' => $idUsuarioSelecionado])"
+                        wire:navigate
+                        icon="plus"
+                        variant="ghost"
+                        size="sm"
+                        square
+                        aria-label="Cadastrar nova missão"
+                        tooltip="Cadastrar nova missão" />
                 @endif
             </div>
 
